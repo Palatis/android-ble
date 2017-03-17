@@ -15,7 +15,7 @@ import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
-import android.util.ArrayMap;
+import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
 import java.lang.annotation.Retention;
