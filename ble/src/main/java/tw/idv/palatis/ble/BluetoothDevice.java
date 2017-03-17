@@ -26,6 +26,7 @@ import java.util.UUID;
 import tw.idv.palatis.ble.database.WeakObservable;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
+import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 
 public abstract class BluetoothDevice {
     private static final String TAG = BluetoothDevice.class.getSimpleName();
@@ -120,7 +121,9 @@ public abstract class BluetoothDevice {
                     return;
                 }
 
-                Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
+                if (DEBUG)
+                    Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
+
                 mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
                 if (newState == BluetoothProfile.STATE_CONNECTED)
                     gatt.discoverServices();
@@ -165,16 +168,18 @@ public abstract class BluetoothDevice {
                     return;
                 }
 
-                final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                for (final byte b : characteristic.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
-                Log.d(TAG, "onCharacteristicRead(): device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid() +
-                        ", data = (0x) " + sb.toString()
-                );
+                if (DEBUG) {
+                    final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
+                    for (final byte b : characteristic.getValue())
+                        sb.append(String.format("%02x-", b));
+                    if (sb.length() > 1)
+                        sb.delete(sb.length() - 1, sb.length());
+                    Log.d(TAG, "onCharacteristicRead(): device = " + getAddress() +
+                            ", service = " + characteristic.getService().getUuid() +
+                            ", characteristic = " + characteristic.getUuid() +
+                            ", data = (0x) " + sb.toString()
+                    );
+                }
 
                 service.onCharacteristicRead(characteristic);
             }
@@ -201,16 +206,18 @@ public abstract class BluetoothDevice {
                     return;
                 }
 
-                StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                for (final byte b : characteristic.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
-                Log.d(TAG, "onCharacteristicWrite(): device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid() +
-                        ", data = (0x) " + sb.toString()
-                );
+                if (DEBUG) {
+                    StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
+                    for (final byte b : characteristic.getValue())
+                        sb.append(String.format("%02x-", b));
+                    if (sb.length() > 1)
+                        sb.delete(sb.length() - 1, sb.length());
+                    Log.d(TAG, "onCharacteristicWrite(): device = " + getAddress() +
+                            ", service = " + characteristic.getService().getUuid() +
+                            ", characteristic = " + characteristic.getUuid() +
+                            ", data = (0x) " + sb.toString()
+                    );
+                }
 
                 service.onCharacteristicWrite(characteristic);
             }
@@ -226,16 +233,18 @@ public abstract class BluetoothDevice {
                     return;
                 }
 
-                final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                for (final byte b : characteristic.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
-                Log.d(TAG, "onCharacteristicChanged(): device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid() +
-                        ", data = (0x) " + sb.toString()
-                );
+                if (DEBUG) {
+                    final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
+                    for (final byte b : characteristic.getValue())
+                        sb.append(String.format("%02x-", b));
+                    if (sb.length() > 1)
+                        sb.delete(sb.length() - 1, sb.length());
+                    Log.d(TAG, "onCharacteristicChanged(): device = " + getAddress() +
+                            ", service = " + characteristic.getService().getUuid() +
+                            ", characteristic = " + characteristic.getUuid() +
+                            ", data = (0x) " + sb.toString()
+                    );
+                }
 
                 service.onCharacteristicChanged(characteristic);
             }
@@ -264,17 +273,19 @@ public abstract class BluetoothDevice {
                     return;
                 }
 
-                final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
-                for (final byte b : descriptor.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
-                Log.d(TAG, "onDescriptorRead(): device = " + getAddress() +
-                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                        ", descriptor = " + descriptor.getUuid() +
-                        ", data = (0x) " + sb.toString()
-                );
+                if (DEBUG) {
+                    final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
+                    for (final byte b : descriptor.getValue())
+                        sb.append(String.format("%02x-", b));
+                    if (sb.length() > 1)
+                        sb.delete(sb.length() - 1, sb.length());
+                    Log.d(TAG, "onDescriptorRead(): device = " + getAddress() +
+                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                            ", descriptor = " + descriptor.getUuid() +
+                            ", data = (0x) " + sb.toString()
+                    );
+                }
 
                 service.onDescriptorRead(descriptor);
             }
@@ -303,17 +314,19 @@ public abstract class BluetoothDevice {
                     return;
                 }
 
-                final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
-                for (final byte b : descriptor.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
-                Log.d(TAG, "onDescriptorWrite(): device = " + getAddress() +
-                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                        ", descriptor = " + descriptor.getUuid() +
-                        ", data = (0x) " + sb.toString()
-                );
+                if (DEBUG) {
+                    final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
+                    for (final byte b : descriptor.getValue())
+                        sb.append(String.format("%02x-", b));
+                    if (sb.length() > 1)
+                        sb.delete(sb.length() - 1, sb.length());
+                    Log.d(TAG, "onDescriptorWrite(): device = " + getAddress() +
+                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                            ", descriptor = " + descriptor.getUuid() +
+                            ", data = (0x) " + sb.toString()
+                    );
+                }
 
                 service.onDescriptorWrite(descriptor);
             }
