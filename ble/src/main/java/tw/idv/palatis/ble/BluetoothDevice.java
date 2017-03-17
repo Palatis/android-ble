@@ -41,7 +41,6 @@ public abstract class BluetoothDevice {
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
-    private String mPassKey = null;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable();
@@ -106,12 +105,12 @@ public abstract class BluetoothDevice {
      * @param context the Application {@link Context}
      * @return true if connection started
      */
-    public boolean connect(@NonNull final Context context, @Nullable final OnErrorCallback callback) {
+    public boolean connect(@NonNull final Context context, boolean autoConnect, @Nullable final OnErrorCallback callback) {
         if (mGatt != null && getConnectionState(context) != BluetoothProfile.STATE_DISCONNECTED)
             return false;
 
         Log.d(TAG, "connect(): device = " + getAddress());
-        mGatt = mNativeDevice.connectGatt(context, mPassKey != null, new BluetoothGattCallback() {
+        mGatt = mNativeDevice.connectGatt(context, autoConnect, new BluetoothGattCallback() {
             @Override
             public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
@@ -358,7 +357,7 @@ public abstract class BluetoothDevice {
     public List<tw.idv.palatis.ble.services.BluetoothGattService> getServices(@NonNull UUID uuid) {
         final ArrayList<tw.idv.palatis.ble.services.BluetoothGattService> services = new ArrayList<>(mGattServices.size());
         final int count = mGattServices.size();
-        for (int i = 0;i < count; ++i) {
+        for (int i = 0; i < count; ++i) {
             final tw.idv.palatis.ble.services.BluetoothGattService service = mGattServices.valueAt(i);
             if (service.getUuid().equals(uuid))
                 services.add(service);
