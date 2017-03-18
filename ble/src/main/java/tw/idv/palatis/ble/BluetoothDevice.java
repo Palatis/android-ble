@@ -387,6 +387,14 @@ public class BluetoothDevice {
         return services;
     }
 
+    public boolean addOnErrorListener(@NonNull OnErrorListener listener) {
+        return mOnErrorObservable.registerObserver(listener);
+    }
+
+    public boolean removeOnErrorListener(@NonNull OnErrorListener listener) {
+        return mOnErrorObservable.unregisterObserver(listener);
+    }
+
     public boolean addOnServiceDiscoveredListener(@NonNull OnServiceDiscoveredListener listener) {
         return mOnServiceDiscoveredObservable.registerObserver(listener);
     }
