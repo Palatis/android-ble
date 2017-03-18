@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
+import android.support.annotation.UiThread;
 import android.support.v4.util.ArrayMap;
 import android.support.v4.util.ArraySet;
 import android.util.Log;
@@ -23,6 +24,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import dalvik.system.DexFile;
+import tw.idv.palatis.ble.database.WeakObservable;
 
 import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 
@@ -90,6 +92,8 @@ public class BluetoothGattService {
     final android.bluetooth.BluetoothGattService mNativeService;
     private final BluetoothGatt mGatt;
 
+    private final OnErrorObservable mOnErrorObservable = new OnErrorObservable();
+
     protected BluetoothGattService(@NonNull BluetoothGatt gatt, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         mGatt = gatt;
         mNativeService = nativeService;
@@ -147,6 +151,12 @@ public class BluetoothGattService {
                         if (Thread.currentThread().isInterrupted())
                             return;
                     }
+                    boolean timedout;
+                    synchronized (sGattIsBusy) {
+                        timedout = sGattIsBusy.contains(mGatt);
+                    }
+                    if (timedout)
+                        mOnErrorObservable.dispatchTimedOut();
                 }
             });
         }
@@ -174,6 +184,12 @@ public class BluetoothGattService {
                         if (Thread.currentThread().isInterrupted())
                             return;
                     }
+                    boolean timedout;
+                    synchronized (sGattIsBusy) {
+                        timedout = sGattIsBusy.contains(mGatt);
+                    }
+                    if (timedout)
+                        mOnErrorObservable.dispatchTimedOut();
                 }
             });
         }
@@ -209,6 +225,12 @@ public class BluetoothGattService {
                         if (Thread.currentThread().isInterrupted())
                             return;
                     }
+                    boolean timedout;
+                    synchronized (sGattIsBusy) {
+                        timedout = sGattIsBusy.contains(mGatt);
+                    }
+                    if (timedout)
+                        mOnErrorObservable.dispatchTimedOut();
                 }
             });
         }
@@ -241,5 +263,35 @@ public class BluetoothGattService {
     }
 
     public void onCharacteristicChanged(BluetoothGattCharacteristic characteristic) {
+    }
+
+    public boolean addOnErrorListener(OnErrorListener listener) {
+        return mOnErrorObservable.registerObserver(listener);
+    }
+
+    public boolean removeOnErrorListener(OnErrorListener listener) {
+        return mOnErrorObservable.unregisterObserver(listener);
+    }
+
+    private class OnErrorObservable extends WeakObservable<OnErrorListener> {
+        void dispatchTimedOut() {
+            housekeeping();
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // iterate backward, because observer may unregister itself.
+                    for (int i = mObservers.size() - 1; i >= 0; --i) {
+                        final OnErrorListener observer = mObservers.get(i).get();
+                        if (observer != null)
+                            observer.onTimedOut(BluetoothGattService.this);
+                    }
+                }
+            });
+        }
+    }
+
+    public interface OnErrorListener {
+        @UiThread
+        void onTimedOut(BluetoothGattService service);
     }
 }
