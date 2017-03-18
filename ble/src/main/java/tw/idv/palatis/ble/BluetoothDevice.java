@@ -28,7 +28,7 @@ import tw.idv.palatis.ble.database.WeakObservable;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 
-public abstract class BluetoothDevice {
+public class BluetoothDevice {
     private static final String TAG = BluetoothDevice.class.getSimpleName();
 
     @Retention(SOURCE)
