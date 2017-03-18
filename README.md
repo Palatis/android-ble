@@ -16,6 +16,7 @@ Register the listeners to `BluetoothDevice` for `onConnectionStateChanged()` and
 Extends `BluetoothGattService`:
 1. create an `UUID_SERVICE` matching your service UUID
 2. make listeners and dispatchers for READ and NOTIFY events...
+3. add `@Keep` to sub-classes of `BluetoothGattService` and it's corresponding `UUID_SERVICE` so proguard don't strip them.
 
 That's it!
 
