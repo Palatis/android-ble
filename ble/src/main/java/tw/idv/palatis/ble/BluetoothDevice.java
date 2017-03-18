@@ -44,6 +44,7 @@ public class BluetoothDevice {
     private int mRssi = -127;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final OnErrorObservable mOnErrorObservable = new OnErrorObservable();
     private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable();
     private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
 
@@ -106,7 +107,7 @@ public class BluetoothDevice {
      * @param context the Application {@link Context}
      * @return true if connection started
      */
-    public boolean connect(@NonNull final Context context, boolean autoConnect, @Nullable final OnErrorCallback callback) {
+    public boolean connect(@NonNull final Context context, boolean autoConnect) {
         if (mGatt != null && getConnectionState(context) != BluetoothProfile.STATE_DISCONNECTED)
             return false;
 
@@ -116,8 +117,7 @@ public class BluetoothDevice {
             public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status);
-                    if (callback != null)
-                        callback.onGattError(status);
+                    mOnErrorObservable.displatchGattError(status);
                     return;
                 }
 
@@ -133,8 +133,7 @@ public class BluetoothDevice {
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     Log.e(TAG, "onServiceDiscovered(): Failed! device = " + getAddress() + ", status = " + status);
-                    if (callback != null)
-                        callback.onGattError(status);
+                    mOnErrorObservable.displatchGattError(status);
                     return;
                 }
 
@@ -154,8 +153,7 @@ public class BluetoothDevice {
                             ", characteristic = " + characteristic.getUuid() +
                             ", status = " + status
                     );
-                    if (callback != null)
-                        callback.onGattError(status);
+                    mOnErrorObservable.displatchGattError(status);
                     return;
                 }
 
@@ -192,8 +190,7 @@ public class BluetoothDevice {
                             ", characteristic = " + characteristic.getUuid() +
                             ", status = " + status
                     );
-                    if (callback != null)
-                        callback.onGattError(status);
+                    mOnErrorObservable.displatchGattError(status);
                     return;
                 }
 
@@ -258,8 +255,7 @@ public class BluetoothDevice {
                             ", descriptor = " + descriptor.getUuid() +
                             ", status = " + status
                     );
-                    if (callback != null)
-                        callback.onGattError(status);
+                    mOnErrorObservable.displatchGattError(status);
                     return;
                 }
 
@@ -299,8 +295,7 @@ public class BluetoothDevice {
                             ", descriptor = " + descriptor.getUuid() +
                             ", status = " + status
                     );
-                    if (callback != null)
-                        callback.onGattError(status);
+                    mOnErrorObservable.displatchGattError(status);
                     return;
                 }
 
@@ -442,7 +437,24 @@ public class BluetoothDevice {
         }
     }
 
-    public interface OnErrorCallback {
+    private class OnErrorObservable extends WeakObservable<OnErrorListener> {
+        void displatchGattError(final int status) {
+            housekeeping();
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // iterate backward, because observer may unregister itself.
+                    for (int i = mObservers.size() - 1; i >= 0; --i) {
+                        final OnErrorListener listener = mObservers.get(i).get();
+                        if (listener != null)
+                            listener.onGattError(status);
+                    }
+                }
+            });
+        }
+    }
+
+    public interface OnErrorListener {
         @AnyThread
         void onGattError(int status);
     }
