@@ -12,9 +12,10 @@ import java.util.UUID;
 import tw.idv.palatis.ble.database.WeakObservable;
 
 /**
- * Created by Palatis on 2017/3/15.
+ * A class that handles the Device Information Service from Bluetooth SIG
+ *
+ * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.device_information.xml}
  */
-
 public class DeviceInformationService extends BluetoothGattService {
     private static final String TAG = DeviceInformationService.class.getSimpleName();
 
@@ -23,9 +24,13 @@ public class DeviceInformationService extends BluetoothGattService {
     public static final UUID UUID_SERVICE = UUID.fromString("0000180a-0000-1000-8000-00805f9b34fb");
 
     // characteristics UUID
+    @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_SYSTEM_ID = UUID.fromString("00002a23-0000-1000-8000-00805f9b34fb");
+    @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_SERIAL_NUMBER = UUID.fromString("00002a25-0000-1000-8000-00805f9b34fb");
+    @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_FIRMWARE_REVISION = UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb");
+    @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_MANUFACTURER_NAME = UUID.fromString("00002a29-0000-1000-8000-00805f9b34fb");
 
     private final BluetoothGattCharacteristic mSystemIdCharacteristics;

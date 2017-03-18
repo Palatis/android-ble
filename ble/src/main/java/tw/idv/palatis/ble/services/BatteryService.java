@@ -11,9 +11,10 @@ import java.util.UUID;
 import tw.idv.palatis.ble.database.WeakObservable;
 
 /**
- * Created by Palatis on 2017/3/15.
+ * A class that handles the Battery Service from Bluetooth SIG
+ *
+ * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.battery_service.xml}
  */
-
 public class BatteryService extends BluetoothGattService {
     private static final String TAG = BatteryService.class.getSimpleName();
 
