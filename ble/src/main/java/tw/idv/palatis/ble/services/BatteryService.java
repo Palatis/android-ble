@@ -2,6 +2,7 @@ package tw.idv.palatis.ble.services;
 
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.support.annotation.Keep;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
 import android.util.Log;
@@ -15,11 +16,13 @@ import tw.idv.palatis.ble.database.WeakObservable;
  *
  * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.battery_service.xml}
  */
+@Keep
 public class BatteryService extends BluetoothGattService {
     private static final String TAG = BatteryService.class.getSimpleName();
 
     // service UUID
     @SuppressWarnings("unused")
+    @Keep
     public static final UUID UUID_SERVICE = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
 
     // characteristic UUID
