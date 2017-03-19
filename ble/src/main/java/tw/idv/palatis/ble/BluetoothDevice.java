@@ -89,15 +89,18 @@ public class BluetoothDevice {
     private final Runnable mOnLongTimeNoSeeRunnable = new Runnable() {
         @Override
         public void run() {
+            if (DEBUG)
+                Log.d(TAG, "onLongTimeNoSee(): goodbye!");
             mOnLongTimeNoSeeObservable.dispatchLongTimeNoSee();
         }
     };
 
     public void sayHi() {
-        if (mOnLongTimeNoSeeRunnable != null) {
-            mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
-            mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
-        }
+        if (DEBUG)
+            Log.d(TAG, "sayHi(): hello~ somebody there?");
+
+        mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
+        mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
     }
 
     /**
@@ -119,255 +122,259 @@ public class BluetoothDevice {
         return btmgr.getConnectionState(mNativeDevice, BluetoothProfile.GATT);
     }
 
+    private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status);
+                mOnErrorObservable.dispatchGattError(status);
+                return;
+            }
+
+            if (DEBUG)
+                Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
+
+            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
+            if (newState == BluetoothProfile.STATE_CONNECTED)
+                gatt.discoverServices();
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "onServiceDiscovered(): Failed! device = " + getAddress() + ", status = " + status);
+                mOnErrorObservable.dispatchGattError(status);
+                return;
+            }
+
+            final List<BluetoothGattService> services = gatt.getServices();
+            for (final BluetoothGattService nativeService : services) {
+                tw.idv.palatis.ble.services.BluetoothGattService service = tw.idv.palatis.ble.services.BluetoothGattService.fromNativeService(gatt, nativeService);
+                mGattServices.put(nativeService.getUuid(), service);
+                mOnServiceDiscoveredObservable.dispatchServiceDiscovered(service);
+            }
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "onCharacteristicRead(): Failed! device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid() +
+                        ", status = " + status
+                );
+                mOnErrorObservable.dispatchGattError(status);
+                return;
+            }
+
+            tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
+            if (service == null) {
+                Log.e(TAG, "onCharacteristicRead(): unregistered service! device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid()
+                );
+                return;
+            }
+
+            if (DEBUG) {
+                final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
+                for (final byte b : characteristic.getValue())
+                    sb.append(String.format("%02x-", b));
+                if (sb.length() > 1)
+                    sb.delete(sb.length() - 1, sb.length());
+                Log.d(TAG, "onCharacteristicRead(): device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid() +
+                        ", data = (0x) " + sb.toString()
+                );
+            }
+
+            service.onCharacteristicRead(characteristic);
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "onCharacteristicWrite(): Failed! device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid() +
+                        ", status = " + status
+                );
+                mOnErrorObservable.dispatchGattError(status);
+                return;
+            }
+
+            tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
+            if (service == null) {
+                Log.e(TAG, "onCharacteristicWrite(): unregistered service! device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid()
+                );
+                return;
+            }
+
+            if (DEBUG) {
+                StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
+                for (final byte b : characteristic.getValue())
+                    sb.append(String.format("%02x-", b));
+                if (sb.length() > 1)
+                    sb.delete(sb.length() - 1, sb.length());
+                Log.d(TAG, "onCharacteristicWrite(): device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid() +
+                        ", data = (0x) " + sb.toString()
+                );
+            }
+
+            service.onCharacteristicWrite(characteristic);
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            final tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
+            if (service == null) {
+                Log.e(TAG, "onCharacteristicChanged(): unregistered service! device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid()
+                );
+                return;
+            }
+
+            if (DEBUG) {
+                final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
+                for (final byte b : characteristic.getValue())
+                    sb.append(String.format("%02x-", b));
+                if (sb.length() > 1)
+                    sb.delete(sb.length() - 1, sb.length());
+                Log.d(TAG, "onCharacteristicChanged(): device = " + getAddress() +
+                        ", service = " + characteristic.getService().getUuid() +
+                        ", characteristic = " + characteristic.getUuid() +
+                        ", data = (0x) " + sb.toString()
+                );
+            }
+
+            service.onCharacteristicChanged(characteristic);
+        }
+
+        @Override
+        public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "onDescriptorRead(): Failed! device = " + getAddress() +
+                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                        ", descriptor = " + descriptor.getUuid() +
+                        ", status = " + status
+                );
+                mOnErrorObservable.dispatchGattError(status);
+                return;
+            }
+
+            final tw.idv.palatis.ble.services.BluetoothGattService service = getService(descriptor.getCharacteristic().getService().getUuid());
+            if (service == null) {
+                Log.e(TAG, "onDescriptorRead(): unregistered service! device = " + getAddress() +
+                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                        ", descriptor = " + descriptor.getUuid()
+                );
+                return;
+            }
+
+            if (DEBUG) {
+                final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
+                for (final byte b : descriptor.getValue())
+                    sb.append(String.format("%02x-", b));
+                if (sb.length() > 1)
+                    sb.delete(sb.length() - 1, sb.length());
+                Log.d(TAG, "onDescriptorRead(): device = " + getAddress() +
+                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                        ", descriptor = " + descriptor.getUuid() +
+                        ", data = (0x) " + sb.toString()
+                );
+            }
+
+            service.onDescriptorRead(descriptor);
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "onDescriptorWrite(): Failed! device = " + getAddress() +
+                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                        ", descriptor = " + descriptor.getUuid() +
+                        ", status = " + status
+                );
+                mOnErrorObservable.dispatchGattError(status);
+                return;
+            }
+
+            final tw.idv.palatis.ble.services.BluetoothGattService service = getService(descriptor.getCharacteristic().getService().getUuid());
+            if (service == null) {
+                Log.e(TAG, "onDescriptorWrite(): unregistered service! device = " + getAddress() +
+                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                        ", descriptor = " + descriptor.getUuid()
+                );
+                return;
+            }
+
+            if (DEBUG) {
+                final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
+                for (final byte b : descriptor.getValue())
+                    sb.append(String.format("%02x-", b));
+                if (sb.length() > 1)
+                    sb.delete(sb.length() - 1, sb.length());
+                Log.d(TAG, "onDescriptorWrite(): device = " + getAddress() +
+                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                        ", descriptor = " + descriptor.getUuid() +
+                        ", data = (0x) " + sb.toString()
+                );
+            }
+
+            service.onDescriptorWrite(descriptor);
+        }
+
+        @Override
+        public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
+            super.onReliableWriteCompleted(gatt, status);
+        }
+
+        @Override
+        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+            super.onReadRemoteRssi(gatt, rssi, status);
+        }
+
+        @Override
+        public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
+            super.onMtuChanged(gatt, mtu, status);
+        }
+    };
+
     /**
      * connect to the device
      *
      * @param context the Application {@link Context}
-     * @return true if connection started
+     * @return true if a connection is attempted
      */
     public boolean connect(@NonNull final Context context, boolean autoConnect) {
         if (mGatt != null && getConnectionState(context) != BluetoothProfile.STATE_DISCONNECTED)
             return false;
 
-        if (mOnLongTimeNoSeeRunnable != null)
-            mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
+        mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
 
-        Log.d(TAG, "connect(): device = " + getAddress());
-        mGatt = mNativeDevice.connectGatt(context, autoConnect, new BluetoothGattCallback() {
-            @Override
-            public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status);
-                    mOnErrorObservable.dispatchGattError(status);
-                    return;
-                }
+        if (DEBUG)
+            Log.d(TAG, "connect(): device = " + getAddress());
 
-                if (DEBUG)
-                    Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
-
-                mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
-                if (newState == BluetoothProfile.STATE_CONNECTED)
-                    gatt.discoverServices();
-            }
-
-            @Override
-            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    Log.e(TAG, "onServiceDiscovered(): Failed! device = " + getAddress() + ", status = " + status);
-                    mOnErrorObservable.dispatchGattError(status);
-                    return;
-                }
-
-                final List<BluetoothGattService> services = gatt.getServices();
-                for (final BluetoothGattService nativeService : services) {
-                    tw.idv.palatis.ble.services.BluetoothGattService service = tw.idv.palatis.ble.services.BluetoothGattService.fromNativeService(gatt, nativeService);
-                    mGattServices.put(nativeService.getUuid(), service);
-                    mOnServiceDiscoveredObservable.dispatchServiceDiscovered(service);
-                }
-            }
-
-            @Override
-            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    Log.e(TAG, "onCharacteristicRead(): Failed! device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid() +
-                            ", status = " + status
-                    );
-                    mOnErrorObservable.dispatchGattError(status);
-                    return;
-                }
-
-                tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
-                if (service == null) {
-                    Log.e(TAG, "onCharacteristicRead(): unregistered service! device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid()
-                    );
-                    return;
-                }
-
-                if (DEBUG) {
-                    final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                    for (final byte b : characteristic.getValue())
-                        sb.append(String.format("%02x-", b));
-                    if (sb.length() > 1)
-                        sb.delete(sb.length() - 1, sb.length());
-                    Log.d(TAG, "onCharacteristicRead(): device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid() +
-                            ", data = (0x) " + sb.toString()
-                    );
-                }
-
-                service.onCharacteristicRead(characteristic);
-            }
-
-            @Override
-            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    Log.e(TAG, "onCharacteristicWrite(): Failed! device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid() +
-                            ", status = " + status
-                    );
-                    mOnErrorObservable.dispatchGattError(status);
-                    return;
-                }
-
-                tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
-                if (service == null) {
-                    Log.e(TAG, "onCharacteristicWrite(): unregistered service! device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid()
-                    );
-                    return;
-                }
-
-                if (DEBUG) {
-                    StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                    for (final byte b : characteristic.getValue())
-                        sb.append(String.format("%02x-", b));
-                    if (sb.length() > 1)
-                        sb.delete(sb.length() - 1, sb.length());
-                    Log.d(TAG, "onCharacteristicWrite(): device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid() +
-                            ", data = (0x) " + sb.toString()
-                    );
-                }
-
-                service.onCharacteristicWrite(characteristic);
-            }
-
-            @Override
-            public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-                final tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
-                if (service == null) {
-                    Log.e(TAG, "onCharacteristicChanged(): unregistered service! device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid()
-                    );
-                    return;
-                }
-
-                if (DEBUG) {
-                    final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                    for (final byte b : characteristic.getValue())
-                        sb.append(String.format("%02x-", b));
-                    if (sb.length() > 1)
-                        sb.delete(sb.length() - 1, sb.length());
-                    Log.d(TAG, "onCharacteristicChanged(): device = " + getAddress() +
-                            ", service = " + characteristic.getService().getUuid() +
-                            ", characteristic = " + characteristic.getUuid() +
-                            ", data = (0x) " + sb.toString()
-                    );
-                }
-
-                service.onCharacteristicChanged(characteristic);
-            }
-
-            @Override
-            public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    Log.e(TAG, "onDescriptorRead(): Failed! device = " + getAddress() +
-                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                            ", descriptor = " + descriptor.getUuid() +
-                            ", status = " + status
-                    );
-                    mOnErrorObservable.dispatchGattError(status);
-                    return;
-                }
-
-                final tw.idv.palatis.ble.services.BluetoothGattService service = getService(descriptor.getCharacteristic().getService().getUuid());
-                if (service == null) {
-                    Log.e(TAG, "onDescriptorRead(): unregistered service! device = " + getAddress() +
-                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                            ", descriptor = " + descriptor.getUuid()
-                    );
-                    return;
-                }
-
-                if (DEBUG) {
-                    final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
-                    for (final byte b : descriptor.getValue())
-                        sb.append(String.format("%02x-", b));
-                    if (sb.length() > 1)
-                        sb.delete(sb.length() - 1, sb.length());
-                    Log.d(TAG, "onDescriptorRead(): device = " + getAddress() +
-                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                            ", descriptor = " + descriptor.getUuid() +
-                            ", data = (0x) " + sb.toString()
-                    );
-                }
-
-                service.onDescriptorRead(descriptor);
-            }
-
-            @Override
-            public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    Log.e(TAG, "onDescriptorWrite(): Failed! device = " + getAddress() +
-                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                            ", descriptor = " + descriptor.getUuid() +
-                            ", status = " + status
-                    );
-                    mOnErrorObservable.dispatchGattError(status);
-                    return;
-                }
-
-                final tw.idv.palatis.ble.services.BluetoothGattService service = getService(descriptor.getCharacteristic().getService().getUuid());
-                if (service == null) {
-                    Log.e(TAG, "onDescriptorWrite(): unregistered service! device = " + getAddress() +
-                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                            ", descriptor = " + descriptor.getUuid()
-                    );
-                    return;
-                }
-
-                if (DEBUG) {
-                    final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
-                    for (final byte b : descriptor.getValue())
-                        sb.append(String.format("%02x-", b));
-                    if (sb.length() > 1)
-                        sb.delete(sb.length() - 1, sb.length());
-                    Log.d(TAG, "onDescriptorWrite(): device = " + getAddress() +
-                            ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                            ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                            ", descriptor = " + descriptor.getUuid() +
-                            ", data = (0x) " + sb.toString()
-                    );
-                }
-
-                service.onDescriptorWrite(descriptor);
-            }
-
-            @Override
-            public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
-                super.onReliableWriteCompleted(gatt, status);
-            }
-
-            @Override
-            public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
-                super.onReadRemoteRssi(gatt, rssi, status);
-            }
-
-            @Override
-            public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
-                super.onMtuChanged(gatt, mtu, status);
-            }
-        });
+        mGatt = mNativeDevice.connectGatt(context, autoConnect, mGattCallback);
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
         return true;
     }
 
     public void disconnect(@NonNull Context context) {
         mGatt.disconnect();
+        mGatt = null;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
         sayHi();
     }
