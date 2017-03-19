@@ -10,7 +10,6 @@ import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
 import android.support.v4.util.ArrayMap;
-import android.support.v4.util.ArraySet;
 import android.util.Log;
 
 import java.io.IOException;
@@ -84,7 +83,6 @@ public class BluetoothGattService {
         return new BluetoothGattService(gatt, nativeService);
     }
 
-    private static final ArraySet<BluetoothGatt> sGattIsBusy = new ArraySet<>();
     private static final ArrayMap<BluetoothGatt, Executor> sGattExecutors = new ArrayMap<>();
 
     protected final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -135,28 +133,19 @@ public class BluetoothGattService {
             getExecutorForGatt(mGatt).execute(new Runnable() {
                 @Override
                 public void run() {
-                    mGatt.readCharacteristic(characteristic);
+                    try {
+                        synchronized (mGatt) {
+                            mGatt.readCharacteristic(characteristic);
 
-                    synchronized (sGattIsBusy) {
-                        sGattIsBusy.add(mGatt);
-                    }
-                    long begin_ms = System.currentTimeMillis();
-                    while (System.currentTimeMillis() - begin_ms < 1000) {
-                        synchronized (sGattIsBusy) {
-                            if (sGattIsBusy.contains(mGatt))
-                                Thread.yield();
-                            else
-                                break;
+                            long start_ms = System.currentTimeMillis();
+                            mGatt.wait(3000);
+                            if (System.currentTimeMillis() - start_ms >= 3000)
+                                mOnErrorObservable.dispatchTimedOut();
                         }
-                        if (Thread.currentThread().isInterrupted())
-                            return;
+                    } catch (InterruptedException ignored) {
+                        if (DEBUG)
+                            Log.d(TAG, "readCharacteristic(): thread interrupted.");
                     }
-                    boolean timedout;
-                    synchronized (sGattIsBusy) {
-                        timedout = sGattIsBusy.contains(mGatt);
-                    }
-                    if (timedout)
-                        mOnErrorObservable.dispatchTimedOut();
                 }
             });
         }
@@ -167,29 +156,19 @@ public class BluetoothGattService {
             getExecutorForGatt(mGatt).execute(new Runnable() {
                 @Override
                 public void run() {
-                    characteristic.setValue(data);
-                    mGatt.writeCharacteristic(characteristic);
-
-                    synchronized (sGattIsBusy) {
-                        sGattIsBusy.add(mGatt);
-                    }
-                    long begin_ms = System.currentTimeMillis();
-                    while (System.currentTimeMillis() - begin_ms < 1000) {
-                        synchronized (sGattIsBusy) {
-                            if (sGattIsBusy.contains(mGatt))
-                                Thread.yield();
-                            else
-                                break;
+                    try {
+                        synchronized (mGatt) {
+                            characteristic.setValue(data);
+                            mGatt.writeCharacteristic(characteristic);
+                            long start_ms = System.currentTimeMillis();
+                            mGatt.wait(3000);
+                            if (System.currentTimeMillis() - start_ms >= 3000)
+                                mOnErrorObservable.dispatchTimedOut();
                         }
-                        if (Thread.currentThread().isInterrupted())
-                            return;
+                    } catch (InterruptedException ignored) {
+                        if (DEBUG)
+                            Log.d(TAG, "writeCharacteristic(): thread interrupted.");
                     }
-                    boolean timedout;
-                    synchronized (sGattIsBusy) {
-                        timedout = sGattIsBusy.contains(mGatt);
-                    }
-                    if (timedout)
-                        mOnErrorObservable.dispatchTimedOut();
                 }
             });
         }
@@ -201,44 +180,40 @@ public class BluetoothGattService {
                 @Override
                 public void run() {
                     final int properties = characteristic.getProperties();
-                    if ((properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
+                    if ((properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0) {
+                        if (DEBUG)
+                            Log.d(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
                         return;
+                    }
 
                     mGatt.setCharacteristicNotification(characteristic, enabled);
                     final BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG);
                     if (descriptor != null) {
-                        descriptor.setValue(enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
-                        mGatt.writeDescriptor(descriptor);
-                    }
+                        try {
+                            synchronized (mGatt) {
+                                descriptor.setValue(enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+                                mGatt.writeDescriptor(descriptor);
 
-                    synchronized (sGattIsBusy) {
-                        sGattIsBusy.add(mGatt);
-                    }
-                    long begin_ms = System.currentTimeMillis();
-                    while (System.currentTimeMillis() - begin_ms < 1000) {
-                        synchronized (sGattIsBusy) {
-                            if (sGattIsBusy.contains(mGatt))
-                                Thread.yield();
-                            else
-                                break;
+                                long start_ms = System.currentTimeMillis();
+                                mGatt.wait(3000);
+                                if (System.currentTimeMillis() - start_ms >= 3000)
+                                    mOnErrorObservable.dispatchTimedOut();
+                            }
+                        } catch (InterruptedException ignored) {
+                            if (DEBUG)
+                                Log.d(TAG, "setCharacteristicNotification(): thread interrupted.");
                         }
-                        if (Thread.currentThread().isInterrupted())
-                            return;
+                    } else {
+                        Log.e(TAG, "setCharacteristicNotification(): characteristic doesn't have config descriptor! notification might not work.");
                     }
-                    boolean timedout;
-                    synchronized (sGattIsBusy) {
-                        timedout = sGattIsBusy.contains(mGatt);
-                    }
-                    if (timedout)
-                        mOnErrorObservable.dispatchTimedOut();
                 }
             });
         }
     }
 
     private void onOperationCompleted() {
-        synchronized (sGattIsBusy) {
-            sGattIsBusy.remove(mGatt);
+        synchronized (mGatt) {
+            mGatt.notifyAll();
         }
     }
 
