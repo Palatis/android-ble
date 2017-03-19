@@ -48,8 +48,8 @@ public class BatteryService extends BluetoothGattService {
 
     @Override
     public void onCharacteristicRead(BluetoothGattCharacteristic characteristic) {
-        super.onCharacteristicRead(characteristic);
         onCharacteristicChanged(characteristic);
+        super.onCharacteristicRead(characteristic);
     }
 
     @Override

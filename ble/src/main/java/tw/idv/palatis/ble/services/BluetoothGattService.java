@@ -222,27 +222,51 @@ public class BluetoothGattService {
         }
     }
 
+    /**
+     * called when descriptor read, be sure to call super <b>AFTER</b> you're done with the
+     * {@param descriptor} contents (or clone it somewhere else), or the next command gets issued
+     * and it's contents gets overwritten.
+     * @param descriptor the {@link BluetoothGattDescriptor} read
+     */
     @CallSuper
-    public void onDescriptorRead(BluetoothGattDescriptor descriptor) {
+    public void onDescriptorRead(@NonNull BluetoothGattDescriptor descriptor) {
         onOperationCompleted();
     }
 
+    /**
+     * called when descriptor written, be sure to call super <b>AFTER</b> you're done with the
+     * {@param descriptor} contents (or clone it somewhere else), or the next command gets issued
+     * and it's contents gets overwritten.
+     * @param descriptor the {@link BluetoothGattDescriptor} wrote
+     */
     @CallSuper
-    public void onDescriptorWrite(BluetoothGattDescriptor descriptor) {
+    public void onDescriptorWrite(@NonNull BluetoothGattDescriptor descriptor) {
         onOperationCompleted();
     }
 
+    /**
+     * called when characteristic read, be sure to call super <b>AFTER</b> you're done with the
+     * {@param characteristic} contents (or clone it somewhere else), or the next command gets
+     * issued and it's contents gets overwritten.
+     * @param characteristic the {@link BluetoothGattCharacteristic} read
+     */
     @CallSuper
-    public void onCharacteristicRead(BluetoothGattCharacteristic characteristic) {
+    public void onCharacteristicRead(@NonNull BluetoothGattCharacteristic characteristic) {
         onOperationCompleted();
     }
 
+    /**
+     * called when characteristic written, be sure to call super <b>AFTER</b> you're done with the
+     * {@param characteristic} contents (or clone it somewhere else), or the next command gets
+     * issued and it's contents gets overwritten.
+     * @param characteristic the {@link BluetoothGattCharacteristic} wrote
+     */
     @CallSuper
-    public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic) {
+    public void onCharacteristicWrite(@NonNull BluetoothGattCharacteristic characteristic) {
         onOperationCompleted();
     }
 
-    public void onCharacteristicChanged(BluetoothGattCharacteristic characteristic) {
+    public void onCharacteristicChanged(@NonNull BluetoothGattCharacteristic characteristic) {
     }
 
     public boolean addOnErrorListener(OnErrorListener listener) {

@@ -59,8 +59,6 @@ public class DeviceInformationService extends BluetoothGattService {
 
     @Override
     public void onCharacteristicRead(@NonNull BluetoothGattCharacteristic characteristic) {
-        super.onCharacteristicRead(characteristic);
-
         final UUID uuid = characteristic.getUuid();
         if (UUID_SYSTEM_ID.equals(uuid)) {
             mSystemId = characteristic.getValue();
@@ -77,6 +75,8 @@ public class DeviceInformationService extends BluetoothGattService {
         } else {
             Log.e(TAG, "Unknown characteristic " + uuid);
         }
+
+        super.onCharacteristicRead(characteristic);
     }
 
     @Nullable
