@@ -85,6 +85,10 @@ public class BluetoothDevice {
         mRssi = rssi;
     }
 
+    public void createBond() {
+        mNativeDevice.createBond();
+    }
+
     private final OnLongTimeNoSeeObservable mOnLongTimeNoSeeObservable = new OnLongTimeNoSeeObservable();
 
     private final Runnable mOnLongTimeNoSeeRunnable = new Runnable() {
