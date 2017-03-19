@@ -100,12 +100,14 @@ public class BluetoothDevice {
         }
     };
 
-    public void sayHi() {
-        if (DEBUG)
-            Log.d(TAG, "sayHi(): hello~ somebody there?");
+    public void sayHi(Context context) {
+        if (getConnectionState(context) != BluetoothProfile.STATE_CONNECTED) {
+            if (DEBUG)
+                Log.d(TAG, "sayHi(): hello~ somebody there?");
 
-        mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
-        mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
+            mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
+            mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
+        }
     }
 
     /**
@@ -384,7 +386,7 @@ public class BluetoothDevice {
         mGatt.disconnect();
         mGatt = null;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
-        sayHi();
+        sayHi(context);
     }
 
     /**
