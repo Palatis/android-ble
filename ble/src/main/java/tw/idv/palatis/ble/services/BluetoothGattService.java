@@ -44,9 +44,14 @@ public class BluetoothGattService {
             final DexFile dexFile = new DexFile(context.getPackageCodePath());
             final Enumeration<String> classNames = dexFile.entries();
             while (classNames.hasMoreElements()) {
-                final Class<?> klass = Class.forName(classNames.nextElement());
-                if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
-                    try {
+                // skip framework components...
+                final String className = classNames.nextElement();
+                if (className.startsWith("android"))
+                    continue;
+
+                final Class<?> klass = Class.forName(className);
+                try {
+                    if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
                         final Field uuidField = klass.getDeclaredField("UUID_SERVICE");
                         uuidField.setAccessible(true);
                         UUID uuid = (UUID) uuidField.get(null);
@@ -57,13 +62,13 @@ public class BluetoothGattService {
                         if (DEBUG)
                             Log.d(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
                         sServiceConstructors.put(uuid, constructor);
-                    } catch (NoSuchFieldException ex) {
-                        if (DEBUG)
-                            Log.d(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
-                    } catch (NoSuchMethodException ex) {
-                        if (DEBUG)
-                            Log.d(TAG, "initialize(): no constructor with the correct signature <c-tor>(BluetoothGatt.class, BluetoothGattService.class) for " + klass.getName());
                     }
+                } catch (NoSuchFieldException ex) {
+                    if (DEBUG)
+                        Log.d(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
+                } catch (NoSuchMethodException ex) {
+                    if (DEBUG)
+                        Log.d(TAG, "initialize(): no constructor with the correct signature <c-tor>(BluetoothGatt.class, BluetoothGattService.class) for " + klass.getName());
                 }
             }
         } catch (IOException | ClassNotFoundException | IllegalAccessException ex) {
