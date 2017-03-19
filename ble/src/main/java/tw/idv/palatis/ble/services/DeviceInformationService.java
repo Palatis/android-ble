@@ -117,61 +117,37 @@ public class DeviceInformationService extends BluetoothGattService {
 
     private class OnDeviceInformationChangedObservable extends WeakObservable<OnDeviceInformationChangedListener> {
         void dispatchSystemIdChanged(final byte[] newSystemId) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnDeviceInformationChangedListener observer = mObservers.get(i).get();
-                        if (observer != null)
-                            observer.onSystemIdChanged(newSystemId);
-                    }
+                public void onDispatch(final OnDeviceInformationChangedListener observer) {
+                    observer.onSystemIdChanged(newSystemId);
                 }
             });
         }
 
         void dispatchSerialNumberChanged(final String newSerialNumber) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnDeviceInformationChangedListener observer = mObservers.get(i).get();
-                        if (observer != null)
-                            observer.onSerialNumberChanged(newSerialNumber);
-                    }
+                public void onDispatch(final OnDeviceInformationChangedListener observer) {
+                    observer.onSerialNumberChanged(newSerialNumber);
                 }
             });
         }
 
         void dispatchFirmwareRevisionChanged(final String newFirmwareRevision) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnDeviceInformationChangedListener observer = mObservers.get(i).get();
-                        if (observer != null)
-                            observer.onFirmwareRevisionChanged(newFirmwareRevision);
-                    }
+                public void onDispatch(final OnDeviceInformationChangedListener observer) {
+                    observer.onFirmwareRevisionChanged(newFirmwareRevision);
                 }
             });
         }
 
         void dispatchManufacturerNameChanged(final String newManufacturerName) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnDeviceInformationChangedListener observer = mObservers.get(i).get();
-                        if (observer != null)
-                            observer.onManufacturerNameChanged(newManufacturerName);
-                    }
+                public void onDispatch(final OnDeviceInformationChangedListener observer) {
+                    observer.onManufacturerNameChanged(newManufacturerName);
                 }
             });
         }

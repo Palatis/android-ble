@@ -84,16 +84,10 @@ public class BatteryService extends BluetoothGattService {
 
     private class OnBatteryLevelChangedObservable extends WeakObservable<OnBatteryLevelChangedListener> {
         void dispatchBatteryLevelChanged(final int newLevel) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnBatteryLevelChangedListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnBatteryLevelChangedListener observer = mObservers.get(i).get();
-                        if (observer != null)
-                            observer.onBatteryLevelChanged(newLevel);
-                    }
+                public void onDispatch(final OnBatteryLevelChangedListener observer) {
+                    observer.onBatteryLevelChanged(newLevel);
                 }
             });
         }

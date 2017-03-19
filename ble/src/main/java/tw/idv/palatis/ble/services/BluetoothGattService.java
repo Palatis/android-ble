@@ -275,16 +275,10 @@ public class BluetoothGattService {
 
     private class OnErrorObservable extends WeakObservable<OnErrorListener> {
         void dispatchTimedOut() {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnErrorListener observer = mObservers.get(i).get();
-                        if (observer != null)
-                            observer.onTimedOut(BluetoothGattService.this);
-                    }
+                public void onDispatch(OnErrorListener observer) {
+                    observer.onTimedOut(BluetoothGattService.this);
                 }
             });
         }

@@ -117,7 +117,7 @@ public class BluetoothDevice {
             public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status);
-                    mOnErrorObservable.displatchGattError(status);
+                    mOnErrorObservable.dispatchGattError(status);
                     return;
                 }
 
@@ -133,7 +133,7 @@ public class BluetoothDevice {
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     Log.e(TAG, "onServiceDiscovered(): Failed! device = " + getAddress() + ", status = " + status);
-                    mOnErrorObservable.displatchGattError(status);
+                    mOnErrorObservable.dispatchGattError(status);
                     return;
                 }
 
@@ -153,7 +153,7 @@ public class BluetoothDevice {
                             ", characteristic = " + characteristic.getUuid() +
                             ", status = " + status
                     );
-                    mOnErrorObservable.displatchGattError(status);
+                    mOnErrorObservable.dispatchGattError(status);
                     return;
                 }
 
@@ -190,7 +190,7 @@ public class BluetoothDevice {
                             ", characteristic = " + characteristic.getUuid() +
                             ", status = " + status
                     );
-                    mOnErrorObservable.displatchGattError(status);
+                    mOnErrorObservable.dispatchGattError(status);
                     return;
                 }
 
@@ -255,7 +255,7 @@ public class BluetoothDevice {
                             ", descriptor = " + descriptor.getUuid() +
                             ", status = " + status
                     );
-                    mOnErrorObservable.displatchGattError(status);
+                    mOnErrorObservable.dispatchGattError(status);
                     return;
                 }
 
@@ -295,7 +295,7 @@ public class BluetoothDevice {
                             ", descriptor = " + descriptor.getUuid() +
                             ", status = " + status
                     );
-                    mOnErrorObservable.displatchGattError(status);
+                    mOnErrorObservable.dispatchGattError(status);
                     return;
                 }
 
@@ -413,16 +413,10 @@ public class BluetoothDevice {
 
     private class OnServiceDiscoveredObservable extends WeakObservable<OnServiceDiscoveredListener> {
         void dispatchServiceDiscovered(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnServiceDiscoveredListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnServiceDiscoveredListener listener = mObservers.get(i).get();
-                        if (listener != null)
-                            listener.onServiceDiscovered(service);
-                    }
+                public void onDispatch(OnServiceDiscoveredListener observer) {
+                    observer.onServiceDiscovered(service);
                 }
             });
         }
@@ -430,33 +424,21 @@ public class BluetoothDevice {
 
     private class OnConnectionStateChangedObservable extends WeakObservable<OnConnectionStateChangedListener> {
         void dispatchConnectionStateChanged(@ConnectionState final int newState) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+            dispatch(mHandler, new OnDispatchCallback<OnConnectionStateChangedListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnConnectionStateChangedListener listener = mObservers.get(i).get();
-                        if (listener != null)
-                            listener.onConnectionStateChanged(newState);
-                    }
+                public void onDispatch(OnConnectionStateChangedListener observer) {
+                    observer.onConnectionStateChanged(newState);
                 }
             });
         }
     }
 
     private class OnErrorObservable extends WeakObservable<OnErrorListener> {
-        void displatchGattError(final int status) {
-            housekeeping();
-            mHandler.post(new Runnable() {
+        void dispatchGattError(final int status) {
+            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
                 @Override
-                public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i) {
-                        final OnErrorListener listener = mObservers.get(i).get();
-                        if (listener != null)
-                            listener.onGattError(status);
-                    }
+                public void onDispatch(OnErrorListener observer) {
+                    observer.onGattError(status);
                 }
             });
         }
