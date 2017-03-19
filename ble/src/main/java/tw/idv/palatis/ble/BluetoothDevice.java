@@ -101,7 +101,8 @@ public class BluetoothDevice {
     };
 
     public void sayHi(Context context) {
-        if (getConnectionState(context) != BluetoothProfile.STATE_CONNECTED) {
+        @ConnectionState final int state = getConnectionState(context);
+        if (state != BluetoothProfile.STATE_CONNECTED && state != BluetoothProfile.STATE_CONNECTING) {
             if (DEBUG)
                 Log.d(TAG, "sayHi(): hello~ somebody there?");
 
@@ -143,10 +144,13 @@ public class BluetoothDevice {
 
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
 
-            if (newState == BluetoothProfile.STATE_CONNECTED)
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
                 gatt.discoverServices();
-            else if (!mAutoConnect && newState == BluetoothProfile.STATE_DISCONNECTED)
+            } else if (!mAutoConnect && newState == BluetoothProfile.STATE_DISCONNECTED) {
+                mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
                 mGatt = null;
+            }
         }
 
         @Override
@@ -371,8 +375,6 @@ public class BluetoothDevice {
     public boolean connect(@NonNull final Context context, boolean autoConnect) {
         if (mGatt != null && getConnectionState(context) != BluetoothProfile.STATE_DISCONNECTED)
             return false;
-
-        mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
 
         if (DEBUG)
             Log.d(TAG, "connect(): device = " + getAddress());
