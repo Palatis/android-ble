@@ -85,6 +85,10 @@ public class BluetoothDevice {
         mRssi = rssi;
     }
 
+    public int getBondState() {
+        return mNativeDevice.getBondState();
+    }
+
     public void createBond() {
         mNativeDevice.createBond();
     }
@@ -100,9 +104,8 @@ public class BluetoothDevice {
         }
     };
 
-    public void sayHi(Context context) {
-        @ConnectionState final int state = getConnectionState(context);
-        if (state != BluetoothProfile.STATE_CONNECTED && state != BluetoothProfile.STATE_CONNECTING) {
+    public void sayHi() {
+        if (mGatt != null) {
             if (DEBUG)
                 Log.d(TAG, "sayHi(): hello~ somebody there?");
 
@@ -142,7 +145,6 @@ public class BluetoothDevice {
             if (DEBUG)
                 Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
-            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
@@ -151,6 +153,8 @@ public class BluetoothDevice {
                 mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
                 mGatt = null;
             }
+
+            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
         }
 
         @Override
@@ -369,26 +373,29 @@ public class BluetoothDevice {
     /**
      * connect to the device
      *
-     * @param context the Application {@link Context}
+     * @param context the application's {@link Context}
+     * @param autoConnect auto re-connect wheh disconnected
      * @return true if a connection is attempted
      */
-    public boolean connect(@NonNull final Context context, boolean autoConnect) {
-        if (mGatt != null && getConnectionState(context) != BluetoothProfile.STATE_DISCONNECTED)
+    public boolean connect(@NonNull Context context, boolean autoConnect) {
+        if (mGatt != null)
             return false;
 
         if (DEBUG)
             Log.d(TAG, "connect(): device = " + getAddress());
 
+        mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
+
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_CONNECTING);
         return true;
     }
 
-    public void disconnect(@NonNull Context context) {
+    public void disconnect() {
         mGatt.disconnect();
         mGatt = null;
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
-        sayHi(context);
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTING);
+        sayHi();
     }
 
     /**
