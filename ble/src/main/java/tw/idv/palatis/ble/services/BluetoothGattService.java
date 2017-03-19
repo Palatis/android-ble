@@ -150,6 +150,8 @@ public class BluetoothGattService {
                     } catch (InterruptedException ignored) {
                         if (DEBUG)
                             Log.d(TAG, "readCharacteristic(): thread interrupted.");
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(ex);
                     }
                 }
             });
@@ -173,6 +175,8 @@ public class BluetoothGattService {
                     } catch (InterruptedException ignored) {
                         if (DEBUG)
                             Log.d(TAG, "writeCharacteristic(): thread interrupted.");
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(ex);
                     }
                 }
             });
@@ -184,32 +188,36 @@ public class BluetoothGattService {
             getExecutorForGatt(mGatt).execute(new Runnable() {
                 @Override
                 public void run() {
-                    final int properties = characteristic.getProperties();
-                    if ((properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0) {
-                        if (DEBUG)
-                            Log.d(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
-                        return;
-                    }
-
-                    mGatt.setCharacteristicNotification(characteristic, enabled);
-                    final BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG);
-                    if (descriptor != null) {
-                        try {
-                            synchronized (mGatt) {
-                                descriptor.setValue(enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
-                                mGatt.writeDescriptor(descriptor);
-
-                                long start_ms = System.currentTimeMillis();
-                                mGatt.wait(3000);
-                                if (System.currentTimeMillis() - start_ms >= 3000)
-                                    mOnErrorObservable.dispatchTimedOut();
-                            }
-                        } catch (InterruptedException ignored) {
+                    try {
+                        final int properties = characteristic.getProperties();
+                        if ((properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0) {
                             if (DEBUG)
-                                Log.d(TAG, "setCharacteristicNotification(): thread interrupted.");
+                                Log.d(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
+                            return;
                         }
-                    } else {
-                        Log.e(TAG, "setCharacteristicNotification(): characteristic doesn't have config descriptor! notification might not work.");
+
+                        mGatt.setCharacteristicNotification(characteristic, enabled);
+                        final BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG);
+                        if (descriptor != null) {
+                            try {
+                                synchronized (mGatt) {
+                                    descriptor.setValue(enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+                                    mGatt.writeDescriptor(descriptor);
+
+                                    long start_ms = System.currentTimeMillis();
+                                    mGatt.wait(3000);
+                                    if (System.currentTimeMillis() - start_ms >= 3000)
+                                        mOnErrorObservable.dispatchTimedOut();
+                                }
+                            } catch (InterruptedException ignored) {
+                                if (DEBUG)
+                                    Log.d(TAG, "setCharacteristicNotification(): thread interrupted.");
+                            }
+                        } else {
+                            Log.e(TAG, "setCharacteristicNotification(): characteristic doesn't have config descriptor! notification might not work.");
+                        }
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(ex);
                     }
                 }
             });
@@ -286,10 +294,22 @@ public class BluetoothGattService {
                 }
             });
         }
+
+        void dispatchFatalError(final Exception ex) {
+            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
+                @Override
+                public void onDispatch(OnErrorListener observer) {
+               observer.onFatalError(ex);
+                }
+            });
+        }
     }
 
     public interface OnErrorListener {
         @UiThread
-        void onTimedOut(BluetoothGattService service);
+        void onTimedOut(@NonNull BluetoothGattService service);
+
+        @UiThread
+        void onFatalError(@NonNull Exception ex);
     }
 }
