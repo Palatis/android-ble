@@ -51,6 +51,7 @@ public class BluetoothDevice {
     private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
 
     private final ArrayMap<UUID, tw.idv.palatis.ble.services.BluetoothGattService> mGattServices = new ArrayMap<>();
+    boolean mAutoConnect = false;
 
     public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
@@ -135,8 +136,11 @@ public class BluetoothDevice {
                 Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
+
             if (newState == BluetoothProfile.STATE_CONNECTED)
                 gatt.discoverServices();
+            else if (!mAutoConnect && newState == BluetoothProfile.STATE_DISCONNECTED)
+                mGatt = null;
         }
 
         @Override
@@ -367,7 +371,7 @@ public class BluetoothDevice {
         if (DEBUG)
             Log.d(TAG, "connect(): device = " + getAddress());
 
-        mGatt = mNativeDevice.connectGatt(context, autoConnect, mGattCallback);
+        mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
         return true;
     }
