@@ -31,6 +31,8 @@ import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 public class BluetoothDevice {
     private static final String TAG = BluetoothDevice.class.getSimpleName();
 
+    private static final long LONG_TIME_NO_SEE_TIMEOUT = 15000; // ms
+
     @Retention(SOURCE)
     @IntDef({
             BluetoothProfile.STATE_CONNECTED, BluetoothProfile.STATE_CONNECTING,
@@ -82,6 +84,22 @@ public class BluetoothDevice {
         mRssi = rssi;
     }
 
+    private final OnLongTimeNoSeeObservable mOnLongTimeNoSeeObservable = new OnLongTimeNoSeeObservable();
+
+    private final Runnable mOnLongTimeNoSeeRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mOnLongTimeNoSeeObservable.dispatchLongTimeNoSee();
+        }
+    };
+
+    public void sayHi() {
+        if (mOnLongTimeNoSeeRunnable != null) {
+            mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
+            mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
+        }
+    }
+
     /**
      * get the connection state, one of {@link BluetoothProfile#STATE_CONNECTED},
      * {@link BluetoothProfile#STATE_CONNECTING}, {@link BluetoothProfile#STATE_DISCONNECTING}, or
@@ -110,6 +128,9 @@ public class BluetoothDevice {
     public boolean connect(@NonNull final Context context, boolean autoConnect) {
         if (mGatt != null && getConnectionState(context) != BluetoothProfile.STATE_DISCONNECTED)
             return false;
+
+        if (mOnLongTimeNoSeeRunnable != null)
+            mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
 
         Log.d(TAG, "connect(): device = " + getAddress());
         mGatt = mNativeDevice.connectGatt(context, autoConnect, new BluetoothGattCallback() {
@@ -348,6 +369,7 @@ public class BluetoothDevice {
     public void disconnect(@NonNull Context context) {
         mGatt.disconnect();
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState(context));
+        sayHi();
     }
 
     /**
@@ -411,6 +433,14 @@ public class BluetoothDevice {
         return mOnConnectionStateChangedObservable.unregisterObserver(listener);
     }
 
+    public boolean addOnLongTimeNoSeeListener(@NonNull OnLongTimeNoSeeListener listener) {
+        return mOnLongTimeNoSeeObservable.registerObserver(listener);
+    }
+
+    public boolean removeOnLongTimeNoSeeListener(@NonNull OnLongTimeNoSeeListener listener) {
+        return mOnLongTimeNoSeeObservable.unregisterObserver(listener);
+    }
+
     private class OnServiceDiscoveredObservable extends WeakObservable<OnServiceDiscoveredListener> {
         void dispatchServiceDiscovered(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service) {
             dispatch(mHandler, new OnDispatchCallback<OnServiceDiscoveredListener>() {
@@ -444,6 +474,17 @@ public class BluetoothDevice {
         }
     }
 
+    private class OnLongTimeNoSeeObservable extends WeakObservable<OnLongTimeNoSeeListener> {
+        void dispatchLongTimeNoSee() {
+            dispatch(mHandler, new OnDispatchCallback<OnLongTimeNoSeeListener>() {
+                @Override
+                public void onDispatch(OnLongTimeNoSeeListener observer) {
+                    observer.onLongTimeNoSee(BluetoothDevice.this);
+                }
+            });
+        }
+    }
+
     public interface OnErrorListener {
         @AnyThread
         void onGattError(int status);
@@ -457,5 +498,10 @@ public class BluetoothDevice {
     public interface OnConnectionStateChangedListener {
         @UiThread
         void onConnectionStateChanged(@ConnectionState int newState);
+    }
+
+    public interface OnLongTimeNoSeeListener {
+        @UiThread
+        void onLongTimeNoSee(@NonNull BluetoothDevice device);
     }
 }
