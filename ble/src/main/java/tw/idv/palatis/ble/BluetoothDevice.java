@@ -373,7 +373,7 @@ public class BluetoothDevice {
     /**
      * connect to the device
      *
-     * @param context the application's {@link Context}
+     * @param context     the application's {@link Context}
      * @param autoConnect auto re-connect wheh disconnected
      * @return true if a connection is attempted
      */
@@ -392,10 +392,13 @@ public class BluetoothDevice {
     }
 
     public void disconnect() {
-        mGatt.disconnect();
-        mGatt = null;
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTING);
-        sayHi();
+        if (mGatt != null) {
+            mGatt.disconnect();
+            mGatt = null;
+            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTING);
+            sayHi();
+        }
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTED);
     }
 
     /**
