@@ -44,6 +44,9 @@ public class BluetoothDevice {
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
+    @ConnectionState
+    private int mConnectionState = BluetoothProfile.STATE_DISCONNECTED;
+    private boolean mAutoConnect = false;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final OnErrorObservable mOnErrorObservable = new OnErrorObservable();
@@ -51,7 +54,6 @@ public class BluetoothDevice {
     private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
 
     private final ArrayMap<UUID, tw.idv.palatis.ble.services.BluetoothGattService> mGattServices = new ArrayMap<>();
-    boolean mAutoConnect = false;
 
     public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
@@ -119,25 +121,19 @@ public class BluetoothDevice {
      * {@link BluetoothProfile#STATE_CONNECTING}, {@link BluetoothProfile#STATE_DISCONNECTING}, or
      * {@link BluetoothProfile#STATE_DISCONNECTED}.
      *
-     * @param context application context
      * @return current connection state
      */
     @SuppressWarnings("WrongConstant")
     @ConnectionState
-    public int getConnectionState(@NonNull final Context context) {
-        if (mGatt == null)
-            return BluetoothProfile.STATE_DISCONNECTED;
-
-        // FIXME: can't use return {@link BluetoothGattService#getConnectionState} here... throws {@link UnsupportedOperationException}...
-        final BluetoothManager btmgr = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
-        return btmgr.getConnectionState(mNativeDevice, BluetoothProfile.GATT);
+    public int getConnectionState() {
+        return mConnectionState;
     }
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status);
+                Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status + ", newState = " + newState);
                 mOnErrorObservable.dispatchGattError(status);
                 return;
             }
@@ -145,7 +141,7 @@ public class BluetoothDevice {
             if (DEBUG)
                 Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
-
+            mConnectionState = newState;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
                 gatt.discoverServices();
@@ -375,30 +371,26 @@ public class BluetoothDevice {
      *
      * @param context     the application's {@link Context}
      * @param autoConnect auto re-connect wheh disconnected
-     * @return true if a connection is attempted
      */
-    public boolean connect(@NonNull Context context, boolean autoConnect) {
+    public void connect(@NonNull Context context, boolean autoConnect) {
         if (mGatt != null)
-            return false;
-
-        if (DEBUG)
-            Log.d(TAG, "connect(): device = " + getAddress());
+            throw new IllegalStateException("device " + getName() + " - " + getAddress() + " not in disconnected state.");
 
         mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
-
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_CONNECTING);
-        return true;
+        mConnectionState = BluetoothProfile.STATE_CONNECTING;
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
     }
 
     public void disconnect() {
-        if (mGatt != null) {
-            mGatt.disconnect();
-            mGatt = null;
-            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTING);
-            sayHi();
-        }
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTED);
+        if (mGatt == null)
+            return;
+
+        mGatt.disconnect();
+        mGatt = null;
+        mConnectionState = BluetoothProfile.STATE_DISCONNECTING;
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
+        sayHi();
     }
 
     /**
