@@ -92,6 +92,7 @@ public class BluetoothGattService {
 
     protected final Handler mHandler = new Handler(Looper.getMainLooper());
 
+    @NonNull
     final android.bluetooth.BluetoothGattService mNativeService;
     private final BluetoothGatt mGatt;
 
