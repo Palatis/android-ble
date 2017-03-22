@@ -33,8 +33,6 @@ public class BluetoothDevice {
 
     private static final UUID UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
-    private static final long LONG_TIME_NO_SEE_TIMEOUT = 15000; // ms
-
     @Retention(SOURCE)
     @IntDef({
             BluetoothProfile.STATE_CONNECTED, BluetoothProfile.STATE_CONNECTING,
@@ -98,27 +96,6 @@ public class BluetoothDevice {
         mNativeDevice.createBond();
     }
 
-    private final OnLongTimeNoSeeObservable mOnLongTimeNoSeeObservable = new OnLongTimeNoSeeObservable();
-
-    private final Runnable mOnLongTimeNoSeeRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (DEBUG)
-                Log.d(TAG, "onLongTimeNoSee(): goodbye!");
-            mOnLongTimeNoSeeObservable.dispatchLongTimeNoSee();
-        }
-    };
-
-    public void sayHi() {
-        if (mGatt != null) {
-            if (DEBUG)
-                Log.d(TAG, "sayHi(): hello~ somebody there?");
-
-            mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
-            mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
-        }
-    }
-
     /**
      * get the connection state, one of {@link BluetoothProfile#STATE_CONNECTED},
      * {@link BluetoothProfile#STATE_CONNECTING}, {@link BluetoothProfile#STATE_DISCONNECTING}, or
@@ -146,10 +123,8 @@ public class BluetoothDevice {
 
             mConnectionState = newState;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
                 gatt.discoverServices();
             } else if (!mAutoConnect && newState == BluetoothProfile.STATE_DISCONNECTED) {
-                mHandler.postDelayed(mOnLongTimeNoSeeRunnable, LONG_TIME_NO_SEE_TIMEOUT);
                 mGatt = null;
             }
 
@@ -348,8 +323,6 @@ public class BluetoothDevice {
     public void connect(@NonNull Context context, boolean autoConnect) {
         if (mGatt != null)
             throw new IllegalStateException("device " + getName() + " - " + getAddress() + " not in disconnected state.");
-
-        mHandler.removeCallbacks(mOnLongTimeNoSeeRunnable);
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
         mConnectionState = BluetoothProfile.STATE_CONNECTING;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
@@ -363,7 +336,6 @@ public class BluetoothDevice {
         mGatt = null;
         mConnectionState = BluetoothProfile.STATE_DISCONNECTING;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
-        sayHi();
     }
 
     /**
@@ -522,14 +494,6 @@ public class BluetoothDevice {
         return mOnConnectionStateChangedObservable.unregisterObserver(listener);
     }
 
-    public boolean addOnLongTimeNoSeeListener(@NonNull OnLongTimeNoSeeListener listener) {
-        return mOnLongTimeNoSeeObservable.registerObserver(listener);
-    }
-
-    public boolean removeOnLongTimeNoSeeListener(@NonNull OnLongTimeNoSeeListener listener) {
-        return mOnLongTimeNoSeeObservable.unregisterObserver(listener);
-    }
-
     private class OnServiceDiscoveredObservable extends WeakObservable<OnServiceDiscoveredListener> {
         void dispatchServiceDiscovered(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service) {
             dispatch(mHandler, new OnDispatchCallback<OnServiceDiscoveredListener>() {
@@ -581,17 +545,6 @@ public class BluetoothDevice {
         }
     }
 
-    private class OnLongTimeNoSeeObservable extends WeakObservable<OnLongTimeNoSeeListener> {
-        void dispatchLongTimeNoSee() {
-            dispatch(mHandler, new OnDispatchCallback<OnLongTimeNoSeeListener>() {
-                @Override
-                public void onDispatch(OnLongTimeNoSeeListener observer) {
-                    observer.onLongTimeNoSee(BluetoothDevice.this);
-                }
-            });
-        }
-    }
-
     public interface OnErrorListener {
         @UiThread
         void onGattError(int status);
@@ -611,10 +564,5 @@ public class BluetoothDevice {
     public interface OnConnectionStateChangedListener {
         @UiThread
         void onConnectionStateChanged(@ConnectionState int newState);
-    }
-
-    public interface OnLongTimeNoSeeListener {
-        @UiThread
-        void onLongTimeNoSee(@NonNull BluetoothDevice device);
     }
 }
