@@ -1,6 +1,5 @@
 package tw.idv.palatis.ble;
 
-import android.app.Application;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -619,19 +618,27 @@ public class BluetoothDevice {
     }
 
     /**
-     * use reflection to find the sub-classes of {@link BluetoothGattService}, has to be initialized
-     * during {@link Application#onCreate()}.
-     *
-     * basic usage:
-     *   1. create an instance of {@link ReflectedGattServiceFactory}, and initialize it
-     *   2. construct the {@link BluetoothDevice} from native {@link android.bluetooth.BluetoothDevice}
-     *   3. set the factory with {@link BluetoothDevice#setServiceFactory(BluetoothGattServiceFactory)}
-     *   4. now you can {@link BluetoothDevice#connect(Context, boolean)}
-     *
-     * note:
-     *   1. all concrete subclasses of {@link BluetoothGattService} should have a public constructor with signature {@code <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetootGattService)}
-     *   2. all concrete subclasses of {@link BluetoothGattService} should have a {@code UUID_SERVICE}
-     *   3. tell proguard to {@code keep} the class, the constructor, and static field {@code UUID_SERVICE}.
+     * <p>
+     *   use reflection to find the sub-classes of {@link BluetoothGattService}, has to be
+     *   initialized during {@link android.app.Application#onCreate()}.
+     * </p>
+     * <p>
+     *   basic usage:
+     *   <ol>
+     *     <li>create an instance of {@link ReflectedGattServiceFactory}, and initialize it</li>
+     *     <li>construct the {@link BluetoothDevice} from native {@link android.bluetooth.BluetoothDevice}</li>
+     *     <li>set the factory with {@link BluetoothDevice#setServiceFactory(BluetoothGattServiceFactory)}</li>
+     *     <li>now you can {@link BluetoothDevice#connect(Context, boolean)}</li>
+     *   </ol>
+     * </p>
+     * <p>
+     *   note:
+     *   <ol>
+     *     <li>all concrete subclasses of {@link BluetoothGattService} should have a public constructor with signature {@code <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetootGattService)}</li>
+     *     <li>all concrete subclasses of {@link BluetoothGattService} should have a {@code UUID_SERVICE}</li>
+     *     <li>tell proguard to {@code keep} the class, the constructor, and static field {@code UUID_SERVICE}.</li>
+     *   </ol>
+     * </p>
      */
     public static class ReflectedGattServiceFactory implements BluetoothGattServiceFactory {
         private LinkedHashMap<UUID, Constructor<? extends BluetoothGattService>> mServiceConstructors = new LinkedHashMap<>();
