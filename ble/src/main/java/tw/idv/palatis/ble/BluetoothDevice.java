@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -615,7 +616,7 @@ public class BluetoothDevice {
      *   3. tell proguard to {@code keep} the class, the constructor, and static field {@code UUID_SERVICE}.
      */
     public static class ReflectedGattServiceFactory implements BluetoothGattServiceFactory {
-        private ArrayMap<UUID, Constructor<? extends BluetoothGattService>> mServiceConstructors = new ArrayMap<>();
+        private LinkedHashMap<UUID, Constructor<? extends BluetoothGattService>> mServiceConstructors = new LinkedHashMap<>();
 
         public ReflectedGattServiceFactory(Context context) {
             try {
