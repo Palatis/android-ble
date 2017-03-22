@@ -1,31 +1,12 @@
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in C:\Users\Palatis\AppData\Local\Android\Sdk/tools/proguard/proguard-android.txt
-# You can edit the include path and order by changing the proguardFiles
-# directive in build.gradle.
+# These are requred if you want to use `BluetoothDevice.ReflectedGattServiceFactory`.
+# it match the incoming `UUID` with the `UUID_SERVICE` static field, and calls the constructor with
+# a signature `<init>(BluetoothDevice, android.bluetooth.BluetoothGattService)`.
 #
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
-
-# Add any project specific keep options here:
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
--keep,allowoptimization,allowobfuscation class * extends tw.idv.palatis.ble.services.BluetoothGattService {
-    <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetoothGattService);
-}
+# tell proguard to keep them if you want to use it.
 -keepclassmembernames,allowoptimization class * extends tw.idv.palatis.ble.services.BluetoothGattService {
     public static final java.util.UUID UUID_SERVICE;
+}
+# we want the constructor, and its name is not really important, so allow obfuscation here.
+-keep,allowoptimization,allowobfuscation class * extends tw.idv.palatis.ble.services.BluetoothGattService {
+    <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetoothGattService);
 }
