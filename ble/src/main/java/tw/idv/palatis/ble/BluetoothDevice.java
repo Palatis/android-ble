@@ -5,12 +5,10 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.AnyThread;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -22,6 +20,8 @@ import java.lang.annotation.Retention;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import tw.idv.palatis.ble.database.WeakObservable;
 
@@ -30,6 +30,8 @@ import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 
 public class BluetoothDevice {
     private static final String TAG = BluetoothDevice.class.getSimpleName();
+
+    private static final UUID UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
     private static final long LONG_TIME_NO_SEE_TIMEOUT = 15000; // ms
 
@@ -49,6 +51,7 @@ public class BluetoothDevice {
     private boolean mAutoConnect = false;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Executor mGattExecutor = Executors.newSingleThreadExecutor();
     private final OnErrorObservable mOnErrorObservable = new OnErrorObservable();
     private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable();
     private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
@@ -163,7 +166,7 @@ public class BluetoothDevice {
 
             final List<BluetoothGattService> services = gatt.getServices();
             for (final BluetoothGattService nativeService : services) {
-                tw.idv.palatis.ble.services.BluetoothGattService service = tw.idv.palatis.ble.services.BluetoothGattService.fromNativeService(gatt, nativeService);
+                tw.idv.palatis.ble.services.BluetoothGattService service = tw.idv.palatis.ble.services.BluetoothGattService.fromNativeService(BluetoothDevice.this, nativeService);
                 mGattServices.put(nativeService.getUuid(), service);
                 mOnServiceDiscoveredObservable.dispatchServiceDiscovered(service);
             }
@@ -181,15 +184,6 @@ public class BluetoothDevice {
                 return;
             }
 
-            tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
-            if (service == null) {
-                Log.e(TAG, "onCharacteristicRead(): unregistered service! device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid()
-                );
-                return;
-            }
-
             if (DEBUG) {
                 final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
                 for (final byte b : characteristic.getValue())
@@ -203,7 +197,9 @@ public class BluetoothDevice {
                 );
             }
 
-            service.onCharacteristicRead(characteristic);
+            synchronized (BluetoothDevice.this) {
+                BluetoothDevice.this.notify();
+            }
         }
 
         @Override
@@ -215,15 +211,6 @@ public class BluetoothDevice {
                         ", status = " + status
                 );
                 mOnErrorObservable.dispatchGattError(status);
-                return;
-            }
-
-            tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
-            if (service == null) {
-                Log.e(TAG, "onCharacteristicWrite(): unregistered service! device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid()
-                );
                 return;
             }
 
@@ -240,7 +227,9 @@ public class BluetoothDevice {
                 );
             }
 
-            service.onCharacteristicWrite(characteristic);
+            synchronized (BluetoothDevice.this) {
+                BluetoothDevice.this.notify();
+            }
         }
 
         @Override
@@ -283,16 +272,6 @@ public class BluetoothDevice {
                 return;
             }
 
-            final tw.idv.palatis.ble.services.BluetoothGattService service = getService(descriptor.getCharacteristic().getService().getUuid());
-            if (service == null) {
-                Log.e(TAG, "onDescriptorRead(): unregistered service! device = " + getAddress() +
-                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                        ", descriptor = " + descriptor.getUuid()
-                );
-                return;
-            }
-
             if (DEBUG) {
                 final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
                 for (final byte b : descriptor.getValue())
@@ -307,7 +286,9 @@ public class BluetoothDevice {
                 );
             }
 
-            service.onDescriptorRead(descriptor);
+            synchronized (BluetoothDevice.this) {
+                BluetoothDevice.this.notify();
+            }
         }
 
         @Override
@@ -320,16 +301,6 @@ public class BluetoothDevice {
                         ", status = " + status
                 );
                 mOnErrorObservable.dispatchGattError(status);
-                return;
-            }
-
-            final tw.idv.palatis.ble.services.BluetoothGattService service = getService(descriptor.getCharacteristic().getService().getUuid());
-            if (service == null) {
-                Log.e(TAG, "onDescriptorWrite(): unregistered service! device = " + getAddress() +
-                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                        ", descriptor = " + descriptor.getUuid()
-                );
                 return;
             }
 
@@ -347,7 +318,9 @@ public class BluetoothDevice {
                 );
             }
 
-            service.onDescriptorWrite(descriptor);
+            synchronized (BluetoothDevice.this) {
+                BluetoothDevice.this.notify();
+            }
         }
 
         @Override
@@ -430,6 +403,101 @@ public class BluetoothDevice {
         return services;
     }
 
+    public void readCharacteristic(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattCharacteristic characteristic) {
+        mGattExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        mGatt.readCharacteristic(characteristic);
+
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
+                        }
+
+                        service.onCharacteristicRead(characteristic);
+                    }
+                } catch (InterruptedException ignored) {
+                    if (DEBUG)
+                        Log.d(TAG, "readCharacteristic(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
+                }
+            }
+        });
+    }
+
+    public void writeCharacteristic(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final byte[] data) {
+        mGattExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        characteristic.setValue(data);
+                        mGatt.writeCharacteristic(characteristic);
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
+                        }
+                        service.onCharacteristicWrite(characteristic);
+                    }
+                } catch (InterruptedException ignored) {
+                    if (DEBUG)
+                        Log.d(TAG, "writeCharacteristic(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
+                }
+            }
+        });
+    }
+
+    public void writeDescriptor(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattDescriptor descriptor, final byte[] data) {
+        mGattExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        descriptor.setValue(data);
+                        mGatt.writeDescriptor(descriptor);
+
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
+                        }
+
+                        service.onDescriptorWrite(descriptor);
+                    }
+                } catch (InterruptedException ignored) {
+                    if (DEBUG)
+                        Log.d(TAG, "setCharacteristicNotification(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
+                }
+            }
+        });
+    }
+
+    public void setCharacteristicNotification(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
+        if (DEBUG && (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
+            Log.d(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
+
+        mGatt.setCharacteristicNotification(characteristic, enabled);
+        final BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG);
+        if (descriptor == null) {
+            Log.e(TAG, "setCharacteristicNotification(): characteristic doesn't have config descriptor! notification might not work.");
+            return;
+        }
+
+        writeDescriptor(service, descriptor, enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+    }
+
     public boolean addOnErrorListener(@NonNull OnErrorListener listener) {
         return mOnErrorObservable.registerObserver(listener);
     }
@@ -493,6 +561,24 @@ public class BluetoothDevice {
                 }
             });
         }
+
+        void dispatchTimedOut(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service) {
+            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
+                @Override
+                public void onDispatch(OnErrorListener observer) {
+                    observer.onTimedOut(service);
+                }
+            });
+        }
+
+        void dispatchFatalError(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service, @NonNull final Throwable ex) {
+            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
+                @Override
+                public void onDispatch(OnErrorListener observer) {
+                    observer.onFatalError(service, ex);
+                }
+            });
+        }
     }
 
     private class OnLongTimeNoSeeObservable extends WeakObservable<OnLongTimeNoSeeListener> {
@@ -507,8 +593,14 @@ public class BluetoothDevice {
     }
 
     public interface OnErrorListener {
-        @AnyThread
+        @UiThread
         void onGattError(int status);
+
+        @UiThread
+        void onTimedOut(@NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
+
+        @UiThread
+        void onFatalError(@NonNull tw.idv.palatis.ble.services.BluetoothGattService service, @NonNull Throwable ex);
     }
 
     public interface OnServiceDiscoveredListener {

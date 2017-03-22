@@ -1,6 +1,5 @@
 package tw.idv.palatis.ble.services;
 
-import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.support.annotation.Keep;
 import android.support.annotation.NonNull;
@@ -10,11 +9,12 @@ import android.util.Log;
 
 import java.util.UUID;
 
+import tw.idv.palatis.ble.BluetoothDevice;
 import tw.idv.palatis.ble.database.WeakObservable;
 
 /**
  * A class that handles the Device Information Service from Bluetooth SIG
- *
+ * <p>
  * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.device_information.xml}
  */
 @Keep
@@ -48,8 +48,8 @@ public class DeviceInformationService extends BluetoothGattService {
 
     private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable();
 
-    DeviceInformationService(@NonNull BluetoothGatt gatt, @NonNull android.bluetooth.BluetoothGattService nativeService) {
-        super(gatt, nativeService);
+    public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+        super(device, nativeService);
 
         mSystemIdCharacteristics = mNativeService.getCharacteristic(UUID_SYSTEM_ID);
         mSerialNumberCharacteristics = mNativeService.getCharacteristic(UUID_SERIAL_NUMBER);
@@ -81,29 +81,29 @@ public class DeviceInformationService extends BluetoothGattService {
 
     @Nullable
     public byte[] getSystemId() {
-        if (mSystemId == null && mSystemIdCharacteristics != null)
-            readCharacteristic(mSystemIdCharacteristics);
+        if (mSystemIdCharacteristics != null)
+            mDevice.readCharacteristic(this, mSystemIdCharacteristics);
         return mSystemId;
     }
 
     @Nullable
     public String getSerialNumber() {
-        if (mSerialNumber == null && mSerialNumberCharacteristics != null)
-            readCharacteristic(mSerialNumberCharacteristics);
+        if (mSerialNumberCharacteristics != null)
+            mDevice.readCharacteristic(this, mSerialNumberCharacteristics);
         return mSerialNumber;
     }
 
     @Nullable
     public String getFirmwareRevision() {
-        if (mFirmwareRevision == null && mFirmwareRevisionCharacteristics != null)
-            readCharacteristic(mFirmwareRevisionCharacteristics);
+        if (mFirmwareRevisionCharacteristics != null)
+            mDevice.readCharacteristic(this, mFirmwareRevisionCharacteristics);
         return mFirmwareRevision;
     }
 
     @Nullable
     public String getManufacturerName() {
-        if (mManufacturerName == null && mManufacturerNameCharacteristics != null)
-            readCharacteristic(mManufacturerNameCharacteristics);
+        if (mManufacturerNameCharacteristics != null)
+            mDevice.readCharacteristic(this, mManufacturerNameCharacteristics);
         return mManufacturerName;
     }
 
