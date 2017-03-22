@@ -16,7 +16,7 @@ import tw.idv.palatis.ble.BluetoothDevice;
  * Created by Palatis on 2017/3/15.
  */
 public class BluetoothGattService {
-    private static final String TAG = BluetoothGattService.class.getSimpleName();
+    private static final String TAG = "BluetoothGattService";
 
     protected final Handler mHandler = new Handler(Looper.getMainLooper());
 

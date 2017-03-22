@@ -37,7 +37,7 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 
 public class BluetoothDevice {
-    private static final String TAG = BluetoothDevice.class.getSimpleName();
+    private static final String TAG = "BluetoothDevice";
 
     private static final UUID UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 

@@ -17,7 +17,7 @@ import tw.idv.palatis.ble.database.WeakObservable;
  * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.device_information.xml}
  */
 public class DeviceInformationService extends BluetoothGattService {
-    private static final String TAG = DeviceInformationService.class.getSimpleName();
+    private static final String TAG = "DeviceInformationService";
 
     // service UUID
     @SuppressWarnings("unused")

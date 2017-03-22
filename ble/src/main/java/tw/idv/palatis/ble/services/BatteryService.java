@@ -16,7 +16,7 @@ import tw.idv.palatis.ble.database.WeakObservable;
  * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.battery_service.xml}
  */
 public class BatteryService extends BluetoothGattService {
-    private static final String TAG = BatteryService.class.getSimpleName();
+    private static final String TAG = "BatteryService";
 
     // service UUID
     @SuppressWarnings("unused")
