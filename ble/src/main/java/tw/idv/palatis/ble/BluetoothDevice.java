@@ -13,7 +13,6 @@ import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
-import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
 import java.io.IOException;
@@ -76,7 +75,7 @@ public class BluetoothDevice {
 
     private BluetoothGattServiceFactory mServiceFactory = DEFAULT_SERVICE_FACTORY;
 
-    private final ArrayMap<UUID, tw.idv.palatis.ble.services.BluetoothGattService> mGattServices = new ArrayMap<>();
+    private final ArrayList<BluetoothGattService> mGattServices = new ArrayList<>();
 
     public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
@@ -148,10 +147,15 @@ public class BluetoothDevice {
                 Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
             mConnectionState = newState;
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                gatt.discoverServices();
-            } else if (!mAutoConnect && newState == BluetoothProfile.STATE_DISCONNECTED) {
-                mGatt = null;
+            switch (newState) {
+                case BluetoothProfile.STATE_CONNECTED:
+                    gatt.discoverServices();
+                    break;
+                case BluetoothProfile.STATE_DISCONNECTED:
+                    mGattServices.clear();
+                    if (!mAutoConnect)
+                        mGatt = null;
+                    break;
             }
 
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
@@ -168,7 +172,7 @@ public class BluetoothDevice {
             final List<android.bluetooth.BluetoothGattService> services = gatt.getServices();
             for (final android.bluetooth.BluetoothGattService nativeService : services) {
                 BluetoothGattService service = mServiceFactory.newInstance(BluetoothDevice.this, nativeService);
-                mGattServices.put(nativeService.getUuid(), service);
+                mGattServices.add(service);
                 mOnServiceDiscoveredObservable.dispatchServiceDiscovered(service);
             }
         }
@@ -235,7 +239,7 @@ public class BluetoothDevice {
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            final tw.idv.palatis.ble.services.BluetoothGattService service = getService(characteristic.getService().getUuid());
+            final BluetoothGattService service = getService(characteristic.getService().getUuid());
             if (service == null) {
                 Log.e(TAG, "onCharacteristicChanged(): unregistered service! device = " + getAddress() +
                         ", service = " + characteristic.getService().getUuid() +
@@ -365,25 +369,43 @@ public class BluetoothDevice {
     }
 
     /**
-     * get a service with specific service UUID
+     * get a service with specific service {@link UUID} and instance ID equals to 0.
      *
      * @param uuid the UUID of the service
-     * @return the {@link tw.idv.palatis.ble.services.BluetoothGattService}, {@code null} if not found.
+     * @return the {@link BluetoothGattService}, {@code null} if not found.
      */
     @Nullable
-    public tw.idv.palatis.ble.services.BluetoothGattService getService(@NonNull UUID uuid) {
-        return mGattServices.get(uuid);
+    public BluetoothGattService getService(@NonNull UUID uuid) {
+        return getService(uuid, 0);
     }
 
+    /**
+     * get a service with specific service {@link UUID} and instance ID
+     *
+     * @param uuid       the {@link UUID} of the service
+     * @param instanceId the instance ID
+     * @return the {@link BluetoothGattService}, {@code null} if not found.
+     */
+    @Nullable
+    public BluetoothGattService getService(@NonNull UUID uuid, int instanceId) {
+        for (final BluetoothGattService service : mGattServices)
+            if (service.getUuid().equals(uuid) && service.getInstanceId() == instanceId)
+                return service;
+        return null;
+    }
+
+    /**
+     * get all services discovered specific {@link UUID}
+     *
+     * @param uuid the UUID of the service
+     * @return an {@link ArrayList<BluetoothGattService>} containing all services found
+     */
     @NonNull
-    public List<tw.idv.palatis.ble.services.BluetoothGattService> getServices(@NonNull UUID uuid) {
+    public List<BluetoothGattService> getServices(@NonNull UUID uuid) {
         final ArrayList<tw.idv.palatis.ble.services.BluetoothGattService> services = new ArrayList<>(mGattServices.size());
-        final int count = mGattServices.size();
-        for (int i = 0; i < count; ++i) {
-            final tw.idv.palatis.ble.services.BluetoothGattService service = mGattServices.valueAt(i);
+        for (final BluetoothGattService service : mGattServices)
             if (service.getUuid().equals(uuid))
                 services.add(service);
-        }
         return services;
     }
 
@@ -394,11 +416,7 @@ public class BluetoothDevice {
      */
     @NonNull
     public List<tw.idv.palatis.ble.services.BluetoothGattService> getServices() {
-        final ArrayList<tw.idv.palatis.ble.services.BluetoothGattService> services = new ArrayList<>(mGattServices.size());
-        final int count = mGattServices.size();
-        for (int i = 0; i < count; ++i)
-            services.add(mGattServices.valueAt(i));
-        return services;
+        return new ArrayList<>(mGattServices);
     }
 
     public void readCharacteristic(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic) {
