@@ -23,4 +23,9 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
--keep class * extends tw.idv.palatis.ble.BluetoothGattService
+-keep,allowoptimization,allowobfuscation class * extends tw.idv.palatis.ble.services.BluetoothGattService {
+    <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetoothGattService);
+}
+-keepclassmembernames,allowoptimization class * extends tw.idv.palatis.ble.services.BluetoothGattService {
+    public static final java.util.UUID UUID_SERVICE;
+}
