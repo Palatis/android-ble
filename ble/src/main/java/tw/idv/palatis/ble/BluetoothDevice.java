@@ -1,10 +1,10 @@
 package tw.idv.palatis.ble;
 
+import android.app.Application;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
@@ -16,14 +16,22 @@ import android.support.annotation.UiThread;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
+import java.io.IOException;
 import java.lang.annotation.Retention;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import dalvik.system.DexFile;
 import tw.idv.palatis.ble.database.WeakObservable;
+import tw.idv.palatis.ble.services.BluetoothGattService;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static tw.idv.palatis.ble.BuildConfig.DEBUG;
@@ -32,6 +40,17 @@ public class BluetoothDevice {
     private static final String TAG = BluetoothDevice.class.getSimpleName();
 
     private static final UUID UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+    /**
+     * the default factory, creates only {@link tw.idv.palatis.ble.services.BluetoothGattService}
+     */
+    private static final BluetoothGattServiceFactory DEFAULT_SERVICE_FACTORY = new BluetoothGattServiceFactory() {
+        @NonNull
+        @Override
+        public BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+            return new BluetoothGattService(device, nativeService);
+        }
+    };
 
     @Retention(SOURCE)
     @IntDef({
@@ -54,10 +73,16 @@ public class BluetoothDevice {
     private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable();
     private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
 
+    private BluetoothGattServiceFactory mServiceFactory = DEFAULT_SERVICE_FACTORY;
+
     private final ArrayMap<UUID, tw.idv.palatis.ble.services.BluetoothGattService> mGattServices = new ArrayMap<>();
 
     public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
+    }
+
+    public void setServiceFactory(@Nullable BluetoothGattServiceFactory factory) {
+        mServiceFactory = factory == null ? DEFAULT_SERVICE_FACTORY : factory;
     }
 
     /**
@@ -139,9 +164,9 @@ public class BluetoothDevice {
                 return;
             }
 
-            final List<BluetoothGattService> services = gatt.getServices();
-            for (final BluetoothGattService nativeService : services) {
-                tw.idv.palatis.ble.services.BluetoothGattService service = tw.idv.palatis.ble.services.BluetoothGattService.fromNativeService(BluetoothDevice.this, nativeService);
+            final List<android.bluetooth.BluetoothGattService> services = gatt.getServices();
+            for (final android.bluetooth.BluetoothGattService nativeService : services) {
+                BluetoothGattService service = mServiceFactory.newInstance(BluetoothDevice.this, nativeService);
                 mGattServices.put(nativeService.getUuid(), service);
                 mOnServiceDiscoveredObservable.dispatchServiceDiscovered(service);
             }
@@ -375,7 +400,7 @@ public class BluetoothDevice {
         return services;
     }
 
-    public void readCharacteristic(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattCharacteristic characteristic) {
+    public void readCharacteristic(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic) {
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -402,7 +427,7 @@ public class BluetoothDevice {
         });
     }
 
-    public void writeCharacteristic(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final byte[] data) {
+    public void writeCharacteristic(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final byte[] data) {
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -428,7 +453,7 @@ public class BluetoothDevice {
         });
     }
 
-    public void writeDescriptor(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattDescriptor descriptor, final byte[] data) {
+    public void writeDescriptor(final BluetoothGattService service, final BluetoothGattDescriptor descriptor, final byte[] data) {
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -456,7 +481,7 @@ public class BluetoothDevice {
         });
     }
 
-    public void setCharacteristicNotification(final tw.idv.palatis.ble.services.BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
+    public void setCharacteristicNotification(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
         if (DEBUG && (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
             Log.d(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
 
@@ -495,7 +520,7 @@ public class BluetoothDevice {
     }
 
     private class OnServiceDiscoveredObservable extends WeakObservable<OnServiceDiscoveredListener> {
-        void dispatchServiceDiscovered(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service) {
+        void dispatchServiceDiscovered(@NonNull final BluetoothGattService service) {
             dispatch(mHandler, new OnDispatchCallback<OnServiceDiscoveredListener>() {
                 @Override
                 public void onDispatch(OnServiceDiscoveredListener observer) {
@@ -526,7 +551,7 @@ public class BluetoothDevice {
             });
         }
 
-        void dispatchTimedOut(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service) {
+        void dispatchTimedOut(@NonNull final BluetoothGattService service) {
             dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
@@ -535,7 +560,7 @@ public class BluetoothDevice {
             });
         }
 
-        void dispatchFatalError(@NonNull final tw.idv.palatis.ble.services.BluetoothGattService service, @NonNull final Throwable ex) {
+        void dispatchFatalError(@NonNull final BluetoothGattService service, @NonNull final Throwable ex) {
             dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
@@ -550,10 +575,10 @@ public class BluetoothDevice {
         void onGattError(int status);
 
         @UiThread
-        void onTimedOut(@NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
+        void onTimedOut(@NonNull BluetoothGattService service);
 
         @UiThread
-        void onFatalError(@NonNull tw.idv.palatis.ble.services.BluetoothGattService service, @NonNull Throwable ex);
+        void onFatalError(@NonNull BluetoothGattService service, @NonNull Throwable ex);
     }
 
     public interface OnServiceDiscoveredListener {
@@ -564,5 +589,82 @@ public class BluetoothDevice {
     public interface OnConnectionStateChangedListener {
         @UiThread
         void onConnectionStateChanged(@ConnectionState int newState);
+    }
+
+    /**
+     * factory used for creating {@link tw.idv.palatis.ble.services.BluetoothGattService}
+     */
+    public interface BluetoothGattServiceFactory {
+        @NonNull
+        BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService);
+    }
+
+    /**
+     * use reflection to find the sub-classes of {@link BluetoothGattService}, has to be initialized
+     * during {@link Application#onCreate()}.
+     *
+     * basic usage:
+     *   1. create an instance of {@link ReflectedGattServiceFactory}, and initialize it
+     *   2. construct the {@link BluetoothDevice} from native {@link android.bluetooth.BluetoothDevice}
+     *   3. set the factory with {@link BluetoothDevice#setServiceFactory(BluetoothGattServiceFactory)}
+     *   4. now you can {@link BluetoothDevice#connect(Context, boolean)}
+     *
+     * note:
+     *   1. all concrete subclasses of {@link BluetoothGattService} should have a public constructor with signature {@code <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetootGattService)}
+     *   2. all concrete subclasses of {@link BluetoothGattService} should have a {@code UUID_SERVICE}
+     *   3. tell proguard to {@code keep} the class, the constructor, and static field {@code UUID_SERVICE}.
+     */
+    public static class ReflectedGattServiceFactory implements BluetoothGattServiceFactory {
+        private ArrayMap<UUID, Constructor<? extends BluetoothGattService>> mServiceConstructors = new ArrayMap<>();
+
+        public ReflectedGattServiceFactory(Context context) {
+            try {
+                final DexFile dexFile = new DexFile(context.getPackageCodePath());
+                final Enumeration<String> classNames = dexFile.entries();
+                while (classNames.hasMoreElements()) {
+                    final String className = classNames.nextElement();
+
+                    // skip framework components...
+                    if (className.startsWith("android") || className.startsWith("java"))
+                        continue;
+
+                    final Class<?> klass = Class.forName(className);
+                    try {
+                        if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
+                            final Field uuidField = klass.getDeclaredField("UUID_SERVICE");
+                            UUID uuid = (UUID) uuidField.get(null);
+                            @SuppressWarnings("unchecked")
+                            final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class);
+
+                            if (DEBUG)
+                                Log.d(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
+                            mServiceConstructors.put(uuid, constructor);
+                        }
+                    } catch (NoSuchFieldException ex) {
+                        if (DEBUG)
+                            Log.d(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
+                    } catch (NoSuchMethodException ex) {
+                        if (DEBUG)
+                            Log.d(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ") for " + klass.getName());
+                    }
+                }
+            } catch (IOException | ClassNotFoundException | IllegalAccessException ex) {
+                throw new IllegalArgumentException("problem when finding sub-classes of BluetoothGattService in package", ex);
+            }
+        }
+
+        @NonNull
+        @Override
+        public BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+            final Constructor<? extends BluetoothGattService> ctor = mServiceConstructors.get(nativeService.getUuid());
+            if (ctor != null) {
+                try {
+                    return ctor.newInstance(device, nativeService);
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
+                    throw new IllegalArgumentException("problem when creating an instance of BluetoothGattService " + nativeService.getUuid(), ex);
+                }
+            }
+            return new BluetoothGattService(device, nativeService);
+        }
     }
 }
