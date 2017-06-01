@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.CallSuper;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -59,6 +60,7 @@ public class BluetoothDevice {
     public @interface ConnectionState {
     }
 
+    private String mDeviceAddress;
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
@@ -76,8 +78,23 @@ public class BluetoothDevice {
 
     private final ArrayList<BluetoothGattService> mGattServices = new ArrayList<>();
 
+    public BluetoothDevice(@NonNull String address) {
+        mDeviceAddress = address;
+        setNativeDevice(null);
+    }
+
     public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
+        mDeviceAddress = device.getAddress();
+        setNativeDevice(device);
+    }
+
+    @CallSuper
+    public void setNativeDevice(android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
+    }
+
+    protected android.bluetooth.BluetoothDevice getDevice() {
+        return mNativeDevice;
     }
 
     public void setServiceFactory(@Nullable BluetoothGattServiceFactory factory) {
@@ -88,14 +105,18 @@ public class BluetoothDevice {
      * @return the name of the device
      */
     public String getName() {
-        return mNativeDevice.getName();
+        return mNativeDevice == null ? mDeviceAddress : mNativeDevice.getName();
     }
 
     /**
      * @return the bluetooth MAC address of the device
      */
     public String getAddress() {
-        return mNativeDevice.getAddress();
+        return mNativeDevice == null ? mDeviceAddress : mNativeDevice.getAddress();
+    }
+
+    public boolean isFake() {
+        return mNativeDevice == null;
     }
 
     /**
