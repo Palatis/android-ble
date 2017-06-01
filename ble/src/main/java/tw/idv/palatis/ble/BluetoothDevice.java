@@ -136,6 +136,8 @@ public class BluetoothDevice {
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
+            mConnectionState = newState;
+
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status + ", newState = " + newState);
                 mOnErrorObservable.dispatchGattError(status);
@@ -145,16 +147,12 @@ public class BluetoothDevice {
             if (DEBUG)
                 Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
-            mConnectionState = newState;
-            switch (newState) {
-                case BluetoothProfile.STATE_CONNECTED:
-                    gatt.discoverServices();
-                    break;
-                case BluetoothProfile.STATE_DISCONNECTED:
-                    mGattServices.clear();
-                    if (!mAutoConnect)
-                        mGatt = null;
-                    break;
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                gatt.discoverServices();
+            } else {
+                mGattServices.clear();
+                if (!mAutoConnect)
+                    mGatt = null;
             }
 
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
