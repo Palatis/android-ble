@@ -361,7 +361,10 @@ public class BluetoothDevice {
      */
     @Nullable
     public BluetoothGattService getService(@NonNull UUID uuid) {
-        return getService(uuid, 0);
+        for (final BluetoothGattService service : mGattServices)
+            if (service.getUuid().equals(uuid))
+                return service;
+        return null;
     }
 
     /**
