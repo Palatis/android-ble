@@ -333,7 +333,7 @@ public class BluetoothDevice {
      * connect to the device
      *
      * @param context     the application's {@link Context}
-     * @param autoConnect auto re-connect wheh disconnected
+     * @param autoConnect auto re-connect when disconnected
      */
     public void connect(@NonNull Context context, boolean autoConnect) {
         if (mGatt != null)
