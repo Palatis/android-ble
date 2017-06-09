@@ -386,6 +386,14 @@ public class BluetoothDevice {
         return null;
     }
 
+    @Nullable
+    public BluetoothGattService getService(Class<? extends BluetoothGattService> klass) {
+        for (final BluetoothGattService service : mGattServices)
+            if (klass.isAssignableFrom(service.getClass()))
+                return service;
+        return null;
+    }
+
     /**
      * get a service with specific service {@link UUID} and instance ID
      *
