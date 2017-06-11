@@ -1,6 +1,8 @@
 package tw.idv.palatis.ble.services;
 
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
@@ -9,7 +11,7 @@ import android.util.Log;
 import java.util.UUID;
 
 import tw.idv.palatis.ble.BluetoothDevice;
-import tw.idv.palatis.ble.database.WeakObservable;
+import tw.idv.palatis.ble.database.Observable;
 
 /**
  * A class that handles the Device Information Service from Bluetooth SIG
@@ -43,10 +45,12 @@ public class DeviceInformationService extends BluetoothGattService {
     private String mFirmwareRevision = null;
     private String mManufacturerName = null;
 
-    private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable();
+    private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable;
 
-    public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+    public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService, @Nullable Handler handler) {
         super(device, nativeService);
+
+        mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable(handler == null ? new Handler(Looper.getMainLooper()) : handler);
 
         mSystemIdCharacteristics = mNativeService.getCharacteristic(UUID_SYSTEM_ID);
         mSerialNumberCharacteristics = mNativeService.getCharacteristic(UUID_SERIAL_NUMBER);
@@ -112,9 +116,13 @@ public class DeviceInformationService extends BluetoothGattService {
         return mOnDeviceInformationChangedObservable.unregisterObserver(listener);
     }
 
-    private class OnDeviceInformationChangedObservable extends WeakObservable<OnDeviceInformationChangedListener> {
+    private class OnDeviceInformationChangedObservable extends Observable<OnDeviceInformationChangedListener> {
+        public OnDeviceInformationChangedObservable(@Nullable Handler handler) {
+            super(handler);
+        }
+
         void dispatchSystemIdChanged(final byte[] newSystemId) {
-            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
                 public void onDispatch(final OnDeviceInformationChangedListener observer) {
                     observer.onSystemIdChanged(newSystemId);
@@ -123,7 +131,7 @@ public class DeviceInformationService extends BluetoothGattService {
         }
 
         void dispatchSerialNumberChanged(final String newSerialNumber) {
-            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
                 public void onDispatch(final OnDeviceInformationChangedListener observer) {
                     observer.onSerialNumberChanged(newSerialNumber);
@@ -132,7 +140,7 @@ public class DeviceInformationService extends BluetoothGattService {
         }
 
         void dispatchFirmwareRevisionChanged(final String newFirmwareRevision) {
-            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
                 public void onDispatch(final OnDeviceInformationChangedListener observer) {
                     observer.onFirmwareRevisionChanged(newFirmwareRevision);
@@ -141,7 +149,7 @@ public class DeviceInformationService extends BluetoothGattService {
         }
 
         void dispatchManufacturerNameChanged(final String newManufacturerName) {
-            dispatch(mHandler, new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
                 public void onDispatch(final OnDeviceInformationChangedListener observer) {
                     observer.onManufacturerNameChanged(newManufacturerName);

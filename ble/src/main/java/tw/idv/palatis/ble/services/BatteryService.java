@@ -1,14 +1,17 @@
 package tw.idv.palatis.ble.services;
 
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
 import android.util.Log;
 
 import java.util.UUID;
 
 import tw.idv.palatis.ble.BluetoothDevice;
-import tw.idv.palatis.ble.database.WeakObservable;
+import tw.idv.palatis.ble.database.Observable;
 
 /**
  * A class that handles the Battery Service from Bluetooth SIG
@@ -32,10 +35,12 @@ public class BatteryService extends BluetoothGattService {
     private BluetoothGattCharacteristic mBatteryLevelCharacteristic;
     private int mBatteryLevel = LEVEL_UNKNOWN;
 
-    private final OnBatteryLevelChangedObservable mOnBatteryLevelChangedObservable = new OnBatteryLevelChangedObservable();
+    private final OnBatteryLevelChangedObservable mOnBatteryLevelChangedObservable;
 
-    public BatteryService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+    public BatteryService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService, @Nullable Handler handler) {
         super(device, nativeService);
+
+        mOnBatteryLevelChangedObservable = new OnBatteryLevelChangedObservable(handler == null ? new Handler(Looper.getMainLooper()) : handler);
 
         mBatteryLevelCharacteristic = nativeService.getCharacteristic(UUID_BATTERY_LEVEL);
         if (mBatteryLevelCharacteristic == null) {
@@ -80,9 +85,13 @@ public class BatteryService extends BluetoothGattService {
         return result;
     }
 
-    private class OnBatteryLevelChangedObservable extends WeakObservable<OnBatteryLevelChangedListener> {
+    private class OnBatteryLevelChangedObservable extends Observable<OnBatteryLevelChangedListener> {
+        public OnBatteryLevelChangedObservable(@Nullable Handler handler) {
+            super(handler);
+        }
+
         void dispatchBatteryLevelChanged(final int newLevel) {
-            dispatch(mHandler, new OnDispatchCallback<OnBatteryLevelChangedListener>() {
+            dispatch(new OnDispatchCallback<OnBatteryLevelChangedListener>() {
                 @Override
                 public void onDispatch(final OnBatteryLevelChangedListener observer) {
                     observer.onBatteryLevelChanged(newLevel);

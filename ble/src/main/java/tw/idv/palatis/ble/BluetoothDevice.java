@@ -31,7 +31,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import dalvik.system.DexFile;
-import tw.idv.palatis.ble.database.WeakObservable;
+import tw.idv.palatis.ble.database.Observable;
 import tw.idv.palatis.ble.services.BluetoothGattService;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
@@ -71,9 +71,10 @@ public class BluetoothDevice {
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final Executor mGattExecutor = Executors.newSingleThreadExecutor();
-    private final OnErrorObservable mOnErrorObservable = new OnErrorObservable();
-    private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable();
-    private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
+
+    private final OnErrorObservable mOnErrorObservable = new OnErrorObservable(mHandler);
+    private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable(mHandler);
+    private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable(mHandler);
 
     private BluetoothGattServiceFactory mServiceFactory = DEFAULT_SERVICE_FACTORY;
 
@@ -520,9 +521,13 @@ public class BluetoothDevice {
         return mOnConnectionStateChangedObservable.unregisterObserver(listener);
     }
 
-    private class OnServiceDiscoveredObservable extends WeakObservable<OnServiceDiscoveredListener> {
+    private class OnServiceDiscoveredObservable extends Observable<OnServiceDiscoveredListener> {
+        public OnServiceDiscoveredObservable(@Nullable Handler handler) {
+            super(handler);
+        }
+
         void dispatchServiceDiscovered(@NonNull final BluetoothGattService service) {
-            dispatch(mHandler, new OnDispatchCallback<OnServiceDiscoveredListener>() {
+            dispatch(new OnDispatchCallback<OnServiceDiscoveredListener>() {
                 @Override
                 public void onDispatch(OnServiceDiscoveredListener observer) {
                     observer.onServiceDiscovered(service);
@@ -531,9 +536,13 @@ public class BluetoothDevice {
         }
     }
 
-    private class OnConnectionStateChangedObservable extends WeakObservable<OnConnectionStateChangedListener> {
+    private class OnConnectionStateChangedObservable extends Observable<OnConnectionStateChangedListener> {
+        public OnConnectionStateChangedObservable(@Nullable Handler handler) {
+            super(handler);
+        }
+
         void dispatchConnectionStateChanged(@ConnectionState final int newState) {
-            dispatch(mHandler, new OnDispatchCallback<OnConnectionStateChangedListener>() {
+            dispatch(new OnDispatchCallback<OnConnectionStateChangedListener>() {
                 @Override
                 public void onDispatch(OnConnectionStateChangedListener observer) {
                     observer.onConnectionStateChanged(newState);
@@ -542,9 +551,13 @@ public class BluetoothDevice {
         }
     }
 
-    private class OnErrorObservable extends WeakObservable<OnErrorListener> {
+    private class OnErrorObservable extends Observable<OnErrorListener> {
+        public OnErrorObservable(@Nullable Handler handler) {
+            super(handler);
+        }
+
         void dispatchGattError(final int status) {
-            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
+            dispatch(new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
                     observer.onGattError(status);
@@ -553,7 +566,7 @@ public class BluetoothDevice {
         }
 
         void dispatchTimedOut(@NonNull final BluetoothGattService service) {
-            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
+            dispatch(new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
                     observer.onTimedOut(service);
@@ -562,7 +575,7 @@ public class BluetoothDevice {
         }
 
         void dispatchFatalError(@NonNull final BluetoothGattService service, @NonNull final Throwable ex) {
-            dispatch(mHandler, new OnDispatchCallback<OnErrorListener>() {
+            dispatch(new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
                     observer.onFatalError(service, ex);
@@ -631,33 +644,37 @@ public class BluetoothDevice {
                 final DexFile dexFile = new DexFile(context.getPackageCodePath());
                 final Enumeration<String> classNames = dexFile.entries();
                 while (classNames.hasMoreElements()) {
-                    final String className = classNames.nextElement();
-
-                    // skip framework components...
-                    if (className.startsWith("android") || className.startsWith("java"))
-                        continue;
-
-                    final Class<?> klass = Class.forName(className);
                     try {
-                        if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
-                            final Field uuidField = klass.getDeclaredField("UUID_SERVICE");
-                            UUID uuid = (UUID) uuidField.get(null);
-                            @SuppressWarnings("unchecked")
-                            final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class);
+                        final String className = classNames.nextElement();
 
+                        // skip framework components...
+                        if (className.startsWith("android") || className.startsWith("java"))
+                            continue;
+
+                        final Class<?> klass = Class.forName(className);
+                        try {
+                            if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
+                                final Field uuidField = klass.getDeclaredField("UUID_SERVICE");
+                                UUID uuid = (UUID) uuidField.get(null);
+                                @SuppressWarnings("unchecked")
+                                final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class, Handler.class);
+
+                                if (DEBUG)
+                                    Log.d(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
+                                mServiceConstructors.put(uuid, constructor);
+                            }
+                        } catch (NoSuchFieldException ex) {
                             if (DEBUG)
-                                Log.d(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
-                            mServiceConstructors.put(uuid, constructor);
+                                Log.d(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
+                        } catch (NoSuchMethodException ex) {
+                            if (DEBUG)
+                                Log.d(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ", " + Handler.class.getSimpleName() + ") for " + klass.getName());
                         }
-                    } catch (NoSuchFieldException ex) {
-                        if (DEBUG)
-                            Log.d(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
-                    } catch (NoSuchMethodException ex) {
-                        if (DEBUG)
-                            Log.d(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ") for " + klass.getName());
+                    } catch (ClassNotFoundException | IllegalAccessException ex) {
+                        Log.e(TAG, "ReflectedGattServiceFactory: " + ex.getMessage());
                     }
                 }
-            } catch (IOException | ClassNotFoundException | IllegalAccessException ex) {
+            } catch (IOException ex) {
                 throw new IllegalArgumentException("problem when finding sub-classes of BluetoothGattService in package", ex);
             }
         }
@@ -668,7 +685,7 @@ public class BluetoothDevice {
             final Constructor<? extends BluetoothGattService> ctor = mServiceConstructors.get(nativeService.getUuid());
             if (ctor != null) {
                 try {
-                    return ctor.newInstance(device, nativeService);
+                    return ctor.newInstance(device, nativeService, null);
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
                     throw new IllegalArgumentException("problem when creating an instance of BluetoothGattService " + nativeService.getUuid(), ex);
                 }
