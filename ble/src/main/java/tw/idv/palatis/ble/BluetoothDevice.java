@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -207,18 +208,12 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG) {
-                final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                for (final byte b : characteristic.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
+            if (DEBUG)
                 Log.d(TAG, "onCharacteristicRead(): device = " + getAddress() +
                         ", service = " + characteristic.getService().getUuid() +
                         ", characteristic = " + characteristic.getUuid() +
-                        ", data = (0x) " + sb.toString()
+                        ", data = " + Arrays.toString(characteristic.getValue())
                 );
-            }
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
@@ -237,18 +232,12 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG) {
-                StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                for (final byte b : characteristic.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
+            if (DEBUG)
                 Log.d(TAG, "onCharacteristicWrite(): device = " + getAddress() +
                         ", service = " + characteristic.getService().getUuid() +
                         ", characteristic = " + characteristic.getUuid() +
-                        ", data = (0x) " + sb.toString()
+                        ", data = " + Arrays.toString(characteristic.getValue())
                 );
-            }
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
@@ -266,18 +255,12 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG) {
-                final StringBuilder sb = new StringBuilder(characteristic.getValue().length * 3);
-                for (final byte b : characteristic.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
+            if (DEBUG)
                 Log.d(TAG, "onCharacteristicChanged(): device = " + getAddress() +
                         ", service = " + characteristic.getService().getUuid() +
                         ", characteristic = " + characteristic.getUuid() +
-                        ", data = (0x) " + sb.toString()
+                        ", data = " + Arrays.toString(characteristic.getValue())
                 );
-            }
 
             service.onCharacteristicChanged(characteristic);
         }
@@ -295,19 +278,13 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG) {
-                final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
-                for (final byte b : descriptor.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
+            if (DEBUG)
                 Log.d(TAG, "onDescriptorRead(): device = " + getAddress() +
                         ", service = " + descriptor.getCharacteristic().getService().getUuid() +
                         ", characteristic = " + descriptor.getCharacteristic().getUuid() +
                         ", descriptor = " + descriptor.getUuid() +
-                        ", data = (0x) " + sb.toString()
+                        ", data = " + Arrays.toString(descriptor.getValue())
                 );
-            }
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
@@ -327,19 +304,13 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG) {
-                final StringBuilder sb = new StringBuilder(descriptor.getValue().length * 3);
-                for (final byte b : descriptor.getValue())
-                    sb.append(String.format("%02x-", b));
-                if (sb.length() > 1)
-                    sb.delete(sb.length() - 1, sb.length());
+            if (DEBUG)
                 Log.d(TAG, "onDescriptorWrite(): device = " + getAddress() +
                         ", service = " + descriptor.getCharacteristic().getService().getUuid() +
                         ", characteristic = " + descriptor.getCharacteristic().getUuid() +
                         ", descriptor = " + descriptor.getUuid() +
-                        ", data = (0x) " + sb.toString()
+                        ", data = " + Arrays.toString(descriptor.getValue())
                 );
-            }
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
