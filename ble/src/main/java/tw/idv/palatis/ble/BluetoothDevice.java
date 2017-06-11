@@ -61,7 +61,7 @@ public class BluetoothDevice {
     public @interface ConnectionState {
     }
 
-    private String mDeviceAddress;
+    private final String mDeviceAddress;
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
@@ -105,13 +105,15 @@ public class BluetoothDevice {
     /**
      * @return the name of the device
      */
+    @Nullable
     public String getName() {
-        return mNativeDevice == null ? mDeviceAddress : mNativeDevice.getName();
+        return mNativeDevice == null ? null : mNativeDevice.getName();
     }
 
     /**
      * @return the bluetooth MAC address of the device
      */
+    @NonNull
     public String getAddress() {
         return mNativeDevice == null ? mDeviceAddress : mNativeDevice.getAddress();
     }
