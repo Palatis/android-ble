@@ -166,8 +166,7 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG)
-                Log.d(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
+            Log.v(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 gatt.discoverServices();
@@ -208,12 +207,11 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG)
-                Log.d(TAG, "onCharacteristicRead(): device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid() +
-                        ", data = " + Arrays.toString(characteristic.getValue())
-                );
+            Log.v(TAG, "onCharacteristicRead(): device = " + getAddress() +
+                    ", service = " + characteristic.getService().getUuid() +
+                    ", characteristic = " + characteristic.getUuid() +
+                    ", data = " + Arrays.toString(characteristic.getValue())
+            );
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
@@ -232,12 +230,11 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG)
-                Log.d(TAG, "onCharacteristicWrite(): device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid() +
-                        ", data = " + Arrays.toString(characteristic.getValue())
-                );
+            Log.v(TAG, "onCharacteristicWrite(): device = " + getAddress() +
+                    ", service = " + characteristic.getService().getUuid() +
+                    ", characteristic = " + characteristic.getUuid() +
+                    ", data = " + Arrays.toString(characteristic.getValue())
+            );
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
@@ -255,12 +252,11 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG)
-                Log.d(TAG, "onCharacteristicChanged(): device = " + getAddress() +
-                        ", service = " + characteristic.getService().getUuid() +
-                        ", characteristic = " + characteristic.getUuid() +
-                        ", data = " + Arrays.toString(characteristic.getValue())
-                );
+            Log.v(TAG, "onCharacteristicChanged(): device = " + getAddress() +
+                    ", service = " + characteristic.getService().getUuid() +
+                    ", characteristic = " + characteristic.getUuid() +
+                    ", data = " + Arrays.toString(characteristic.getValue())
+            );
 
             service.onCharacteristicChanged(characteristic);
         }
@@ -278,13 +274,12 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG)
-                Log.d(TAG, "onDescriptorRead(): device = " + getAddress() +
-                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                        ", descriptor = " + descriptor.getUuid() +
-                        ", data = " + Arrays.toString(descriptor.getValue())
-                );
+            Log.v(TAG, "onDescriptorRead(): device = " + getAddress() +
+                    ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                    ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                    ", descriptor = " + descriptor.getUuid() +
+                    ", data = " + Arrays.toString(descriptor.getValue())
+            );
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
@@ -304,13 +299,12 @@ public class BluetoothDevice {
                 return;
             }
 
-            if (DEBUG)
-                Log.d(TAG, "onDescriptorWrite(): device = " + getAddress() +
-                        ", service = " + descriptor.getCharacteristic().getService().getUuid() +
-                        ", characteristic = " + descriptor.getCharacteristic().getUuid() +
-                        ", descriptor = " + descriptor.getUuid() +
-                        ", data = " + Arrays.toString(descriptor.getValue())
-                );
+            Log.v(TAG, "onDescriptorWrite(): device = " + getAddress() +
+                    ", service = " + descriptor.getCharacteristic().getService().getUuid() +
+                    ", characteristic = " + descriptor.getCharacteristic().getUuid() +
+                    ", descriptor = " + descriptor.getUuid() +
+                    ", data = " + Arrays.toString(descriptor.getValue())
+            );
 
             synchronized (BluetoothDevice.this) {
                 BluetoothDevice.this.notify();
