@@ -29,18 +29,22 @@ public class DeviceInformationService extends BluetoothGattService {
     @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_SYSTEM_ID = UUID.fromString("00002a23-0000-1000-8000-00805f9b34fb");
     @SuppressWarnings("WeakerAccess")
+    public static final UUID UUID_MODEL_NUMBER = UUID.fromString("00002a24-0000-1000-8000-00805f9b34fb");
+    @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_SERIAL_NUMBER = UUID.fromString("00002a25-0000-1000-8000-00805f9b34fb");
     @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_FIRMWARE_REVISION = UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb");
     @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_MANUFACTURER_NAME = UUID.fromString("00002a29-0000-1000-8000-00805f9b34fb");
 
-    private final BluetoothGattCharacteristic mSystemIdCharacteristics;
-    private final BluetoothGattCharacteristic mSerialNumberCharacteristics;
-    private final BluetoothGattCharacteristic mFirmwareRevisionCharacteristics;
-    private final BluetoothGattCharacteristic mManufacturerNameCharacteristics;
+    private final BluetoothGattCharacteristic mSystemIdCharacteristic;
+    private final BluetoothGattCharacteristic mModelNumberCharacteristic;
+    private final BluetoothGattCharacteristic mSerialNumberCharacteristic;
+    private final BluetoothGattCharacteristic mFirmwareRevisionCharacteristic;
+    private final BluetoothGattCharacteristic mManufacturerNameCharacteristic;
 
     private byte[] mSystemId = null;
+    private String mModelNumber = null;
     private String mSerialNumber = null;
     private String mFirmwareRevision = null;
     private String mManufacturerName = null;
@@ -52,10 +56,11 @@ public class DeviceInformationService extends BluetoothGattService {
 
         mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable(handler == null ? new Handler(Looper.getMainLooper()) : handler);
 
-        mSystemIdCharacteristics = mNativeService.getCharacteristic(UUID_SYSTEM_ID);
-        mSerialNumberCharacteristics = mNativeService.getCharacteristic(UUID_SERIAL_NUMBER);
-        mFirmwareRevisionCharacteristics = mNativeService.getCharacteristic(UUID_FIRMWARE_REVISION);
-        mManufacturerNameCharacteristics = mNativeService.getCharacteristic(UUID_MANUFACTURER_NAME);
+        mSystemIdCharacteristic = mNativeService.getCharacteristic(UUID_SYSTEM_ID);
+        mModelNumberCharacteristic = mNativeService.getCharacteristic(UUID_MODEL_NUMBER);
+        mSerialNumberCharacteristic = mNativeService.getCharacteristic(UUID_SERIAL_NUMBER);
+        mFirmwareRevisionCharacteristic = mNativeService.getCharacteristic(UUID_FIRMWARE_REVISION);
+        mManufacturerNameCharacteristic = mNativeService.getCharacteristic(UUID_MANUFACTURER_NAME);
     }
 
     @Override
@@ -64,6 +69,9 @@ public class DeviceInformationService extends BluetoothGattService {
         if (UUID_SYSTEM_ID.equals(uuid)) {
             mSystemId = characteristic.getValue();
             mOnDeviceInformationChangedObservable.dispatchSystemIdChanged(mSystemId);
+        } else if (UUID_MODEL_NUMBER.equals(uuid)) {
+            mModelNumber = characteristic.getStringValue(0);
+            mOnDeviceInformationChangedObservable.dispatchModelNumberChanged(mModelNumber);
         } else if (UUID_SERIAL_NUMBER.equals(uuid)) {
             mSerialNumber = characteristic.getStringValue(0);
             mOnDeviceInformationChangedObservable.dispatchSerialNumberChanged(mSerialNumber);
@@ -82,29 +90,36 @@ public class DeviceInformationService extends BluetoothGattService {
 
     @Nullable
     public byte[] getSystemId() {
-        if (mSystemIdCharacteristics != null)
-            mDevice.readCharacteristic(this, mSystemIdCharacteristics);
+        if (mSystemIdCharacteristic != null)
+            mDevice.readCharacteristic(this, mSystemIdCharacteristic);
         return mSystemId;
     }
 
     @Nullable
+    public String getModelNumber() {
+        if (mModelNumberCharacteristic != null)
+            mDevice.readCharacteristic(this, mModelNumberCharacteristic);
+        return mModelNumber;
+    }
+
+    @Nullable
     public String getSerialNumber() {
-        if (mSerialNumberCharacteristics != null)
-            mDevice.readCharacteristic(this, mSerialNumberCharacteristics);
+        if (mSerialNumberCharacteristic != null)
+            mDevice.readCharacteristic(this, mSerialNumberCharacteristic);
         return mSerialNumber;
     }
 
     @Nullable
     public String getFirmwareRevision() {
-        if (mFirmwareRevisionCharacteristics != null)
-            mDevice.readCharacteristic(this, mFirmwareRevisionCharacteristics);
+        if (mFirmwareRevisionCharacteristic != null)
+            mDevice.readCharacteristic(this, mFirmwareRevisionCharacteristic);
         return mFirmwareRevision;
     }
 
     @Nullable
     public String getManufacturerName() {
-        if (mManufacturerNameCharacteristics != null)
-            mDevice.readCharacteristic(this, mManufacturerNameCharacteristics);
+        if (mManufacturerNameCharacteristic != null)
+            mDevice.readCharacteristic(this, mManufacturerNameCharacteristic);
         return mManufacturerName;
     }
 
@@ -126,6 +141,15 @@ public class DeviceInformationService extends BluetoothGattService {
                 @Override
                 public void onDispatch(final OnDeviceInformationChangedListener observer) {
                     observer.onSystemIdChanged(newSystemId);
+                }
+            });
+        }
+
+        void dispatchModelNumberChanged(final String newModelNumber) {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+                @Override
+                public void onDispatch(final OnDeviceInformationChangedListener observer) {
+                    observer.onModelNumberChanged(newModelNumber);
                 }
             });
         }
@@ -161,6 +185,9 @@ public class DeviceInformationService extends BluetoothGattService {
     public interface OnDeviceInformationChangedListener {
         @UiThread
         void onSystemIdChanged(@Nullable byte[] newSystemId);
+
+        @UiThread
+        void onModelNumberChanged(@Nullable String newModelNumber);
 
         @UiThread
         void onSerialNumberChanged(@Nullable String newSerialNumber);
