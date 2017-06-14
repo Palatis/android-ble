@@ -325,6 +325,8 @@ public class BluetoothDevice {
     public void connect(@NonNull Context context, boolean autoConnect) {
         if (mGatt != null && getConnectionState() != BluetoothProfile.STATE_DISCONNECTED)
             throw new IllegalStateException("device " + getName() + " - " + getAddress() + " not in disconnected state.");
+        if (mNativeDevice == null)
+            return;
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
         mConnectionState = BluetoothProfile.STATE_CONNECTING;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
