@@ -55,7 +55,7 @@ public class BatteryService extends BluetoothGattService {
 
     @Override
     public void onCharacteristicChanged(@NonNull BluetoothGattCharacteristic characteristic) {
-        mOnBatteryLevelChangedObservable.dispatchBatteryLevelChanged(characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, LEVEL_UNKNOWN));
+        mOnBatteryLevelChangedObservable.dispatchBatteryLevelChanged(characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
     }
 
     public boolean getBatteryLevel() {
