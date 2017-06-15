@@ -43,12 +43,6 @@ public class DeviceInformationService extends BluetoothGattService {
     private final BluetoothGattCharacteristic mFirmwareRevisionCharacteristic;
     private final BluetoothGattCharacteristic mManufacturerNameCharacteristic;
 
-    private byte[] mSystemId = null;
-    private String mModelNumber = null;
-    private String mSerialNumber = null;
-    private String mFirmwareRevision = null;
-    private String mManufacturerName = null;
-
     private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable;
 
     public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService, @Nullable Handler handler) {
@@ -67,20 +61,15 @@ public class DeviceInformationService extends BluetoothGattService {
     public void onCharacteristicRead(@NonNull BluetoothGattCharacteristic characteristic) {
         final UUID uuid = characteristic.getUuid();
         if (UUID_SYSTEM_ID.equals(uuid)) {
-            mSystemId = characteristic.getValue();
-            mOnDeviceInformationChangedObservable.dispatchSystemIdChanged(mSystemId);
+            mOnDeviceInformationChangedObservable.dispatchSystemIdChanged(characteristic.getValue().clone());
         } else if (UUID_MODEL_NUMBER.equals(uuid)) {
-            mModelNumber = characteristic.getStringValue(0);
-            mOnDeviceInformationChangedObservable.dispatchModelNumberChanged(mModelNumber);
+            mOnDeviceInformationChangedObservable.dispatchModelNumberChanged(characteristic.getStringValue(0));
         } else if (UUID_SERIAL_NUMBER.equals(uuid)) {
-            mSerialNumber = characteristic.getStringValue(0);
-            mOnDeviceInformationChangedObservable.dispatchSerialNumberChanged(mSerialNumber);
+            mOnDeviceInformationChangedObservable.dispatchSerialNumberChanged(characteristic.getStringValue(0));
         } else if (UUID_FIRMWARE_REVISION.equals(uuid)) {
-            mFirmwareRevision = characteristic.getStringValue(0);
-            mOnDeviceInformationChangedObservable.dispatchFirmwareRevisionChanged(mFirmwareRevision);
+            mOnDeviceInformationChangedObservable.dispatchFirmwareRevisionChanged(characteristic.getStringValue(0));
         } else if (UUID_MANUFACTURER_NAME.equals(uuid)) {
-            mManufacturerName = characteristic.getStringValue(0);
-            mOnDeviceInformationChangedObservable.dispatchManufacturerNameChanged(mManufacturerName);
+            mOnDeviceInformationChangedObservable.dispatchManufacturerNameChanged(characteristic.getStringValue(0));
         } else {
             Log.e(TAG, "Unknown characteristic " + uuid);
         }
@@ -88,39 +77,44 @@ public class DeviceInformationService extends BluetoothGattService {
         super.onCharacteristicRead(characteristic);
     }
 
-    @Nullable
-    public byte[] getSystemId() {
-        if (mSystemIdCharacteristic != null)
+    public boolean getSystemId() {
+        if (mSystemIdCharacteristic != null) {
             mDevice.readCharacteristic(this, mSystemIdCharacteristic);
-        return mSystemId;
+            return true;
+        }
+        return false;
     }
 
-    @Nullable
-    public String getModelNumber() {
-        if (mModelNumberCharacteristic != null)
+    public boolean getModelNumber() {
+        if (mModelNumberCharacteristic != null) {
             mDevice.readCharacteristic(this, mModelNumberCharacteristic);
-        return mModelNumber;
+            return true;
+        }
+        return false;
     }
 
-    @Nullable
-    public String getSerialNumber() {
-        if (mSerialNumberCharacteristic != null)
+    public boolean getSerialNumber() {
+        if (mSerialNumberCharacteristic != null) {
             mDevice.readCharacteristic(this, mSerialNumberCharacteristic);
-        return mSerialNumber;
+            return true;
+        }
+        return false;
     }
 
-    @Nullable
-    public String getFirmwareRevision() {
-        if (mFirmwareRevisionCharacteristic != null)
+    public boolean getFirmwareRevision() {
+        if (mFirmwareRevisionCharacteristic != null) {
             mDevice.readCharacteristic(this, mFirmwareRevisionCharacteristic);
-        return mFirmwareRevision;
+            return true;
+        }
+        return false;
     }
 
-    @Nullable
-    public String getManufacturerName() {
-        if (mManufacturerNameCharacteristic != null)
+    public boolean getManufacturerName() {
+        if (mManufacturerNameCharacteristic != null) {
             mDevice.readCharacteristic(this, mManufacturerNameCharacteristic);
-        return mManufacturerName;
+            return true;
+        }
+        return false;
     }
 
     public boolean addOnDeviceInformationChangedListener(@NonNull OnDeviceInformationChangedListener listener) {

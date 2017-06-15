@@ -33,7 +33,6 @@ public class BatteryService extends BluetoothGattService {
     public static final int LEVEL_UNAVAILABLE = -2;
 
     private BluetoothGattCharacteristic mBatteryLevelCharacteristic;
-    private int mBatteryLevel = LEVEL_UNKNOWN;
 
     private final OnBatteryLevelChangedObservable mOnBatteryLevelChangedObservable;
 
@@ -44,7 +43,6 @@ public class BatteryService extends BluetoothGattService {
 
         mBatteryLevelCharacteristic = nativeService.getCharacteristic(UUID_BATTERY_LEVEL);
         if (mBatteryLevelCharacteristic == null) {
-            mBatteryLevel = LEVEL_UNAVAILABLE;
             Log.e(TAG, "this BATTERY_SERVICE doesn't have BATTERY_LEVEL characteristics... = =");
         }
     }
@@ -57,20 +55,15 @@ public class BatteryService extends BluetoothGattService {
 
     @Override
     public void onCharacteristicChanged(@NonNull BluetoothGattCharacteristic characteristic) {
-        final int newLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        Log.d(TAG, "onCharacteristicUpdate(): battery level = " + newLevel + ", old = " + mBatteryLevel);
-        if (mBatteryLevel != newLevel)
-            mOnBatteryLevelChangedObservable.dispatchBatteryLevelChanged(mBatteryLevel = newLevel);
+        mOnBatteryLevelChangedObservable.dispatchBatteryLevelChanged(characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, LEVEL_UNKNOWN));
     }
 
-    public int getBatteryLevel() {
-        if (mBatteryLevelCharacteristic == null)
-            return LEVEL_UNAVAILABLE;
-
-        if (mBatteryLevel == LEVEL_UNKNOWN)
+    public boolean getBatteryLevel() {
+        if (mBatteryLevelCharacteristic != null) {
             mDevice.readCharacteristic(this, mBatteryLevelCharacteristic);
-
-        return mBatteryLevel;
+            return true;
+        }
+        return true;
     }
 
     public boolean addOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
