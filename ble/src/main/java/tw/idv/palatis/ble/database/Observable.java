@@ -42,19 +42,21 @@ public abstract class Observable<ObserverT> {
 
     protected void dispatch(final OnDispatchCallback<ObserverT> callback) {
         if (mHandler == null) {
-            // iterate backward, because observer may unregister itself.
-            for (int i = mObservers.size() - 1; i >= 0; --i)
-                callback.onDispatch(mObservers.get(i));
+            dispatchInternal(callback);
         } else {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    // iterate backward, because observer may unregister itself.
-                    for (int i = mObservers.size() - 1; i >= 0; --i)
-                        callback.onDispatch(mObservers.get(i));
+                    dispatchInternal(callback);
                 }
             });
         }
+    }
+
+    private void dispatchInternal(OnDispatchCallback<ObserverT> callback) {
+        // iterate backward, because observer may unregister itself.
+        for (int i = mObservers.size() - 1; i >= 0; --i)
+            callback.onDispatch(mObservers.get(i));
     }
 
     public int numObservers() {
