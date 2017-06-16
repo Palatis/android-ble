@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -61,6 +62,24 @@ public class BluetoothDevice {
     public @interface ConnectionState {
     }
 
+    public static long deviceIdFromAddress(String bdAddress) {
+        return Long.parseLong(bdAddress.replace(":", ""), 16);
+    }
+
+    public static String addressFromDeviceId(long bdAddress) {
+        return String.format(
+                Locale.getDefault(),
+                "%02x:%02x:%02x:%02x:%02x:%02x",
+                bdAddress >> 40 & 0x00ff,
+                bdAddress >> 32 & 0x00ff,
+                bdAddress >> 24 & 0x00ff,
+                bdAddress >> 16 & 0x00ff,
+                bdAddress >> 8 & 0x00ff,
+                bdAddress & 0x00ff
+        );
+    }
+
+    private final long mId;
     private final String mDeviceAddress;
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
@@ -82,11 +101,13 @@ public class BluetoothDevice {
 
     public BluetoothDevice(@NonNull String address) {
         mDeviceAddress = address;
+        mId = deviceIdFromAddress(getAddress());
         setNativeDevice(null);
     }
 
     public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
         mDeviceAddress = device.getAddress();
+        mId = deviceIdFromAddress(getAddress());
         setNativeDevice(device);
     }
 
@@ -101,6 +122,13 @@ public class BluetoothDevice {
 
     public void setServiceFactory(@Nullable BluetoothGattServiceFactory factory) {
         mServiceFactory = factory == null ? DEFAULT_SERVICE_FACTORY : factory;
+    }
+
+    /**
+     * @return {@link #getAddress()} expressed in long
+     */
+    public long getId() {
+        return mId;
     }
 
     /**
