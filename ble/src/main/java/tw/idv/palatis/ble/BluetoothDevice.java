@@ -36,7 +36,6 @@ import tw.idv.palatis.ble.database.Observable;
 import tw.idv.palatis.ble.services.BluetoothGattService;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
-import static tw.idv.palatis.ble.BuildConfig.DEBUG;
 
 public class BluetoothDevice {
     private static final String TAG = "BluetoothDevice";
@@ -450,8 +449,7 @@ public class BluetoothDevice {
                         service.onCharacteristicRead(characteristic);
                     }
                 } catch (InterruptedException ignored) {
-                    if (DEBUG)
-                        Log.d(TAG, "readCharacteristic(): thread interrupted.");
+                    Log.v(TAG, "readCharacteristic(): thread interrupted.");
                 } catch (Exception ex) {
                     mOnErrorObservable.dispatchFatalError(service, ex);
                 }
@@ -476,8 +474,7 @@ public class BluetoothDevice {
                         service.onCharacteristicWrite(characteristic);
                     }
                 } catch (InterruptedException ignored) {
-                    if (DEBUG)
-                        Log.d(TAG, "writeCharacteristic(): thread interrupted.");
+                    Log.v(TAG, "writeCharacteristic(): thread interrupted.");
                 } catch (Exception ex) {
                     mOnErrorObservable.dispatchFatalError(service, ex);
                 }
@@ -504,8 +501,7 @@ public class BluetoothDevice {
                         service.onDescriptorWrite(descriptor);
                     }
                 } catch (InterruptedException ignored) {
-                    if (DEBUG)
-                        Log.d(TAG, "setCharacteristicNotification(): thread interrupted.");
+                    Log.v(TAG, "setCharacteristicNotification(): thread interrupted.");
                 } catch (Exception ex) {
                     mOnErrorObservable.dispatchFatalError(service, ex);
                 }
@@ -514,8 +510,8 @@ public class BluetoothDevice {
     }
 
     public void setCharacteristicNotification(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
-        if (DEBUG && (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
-            Log.d(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
+        if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
+            Log.v(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
 
         mGatt.setCharacteristicNotification(characteristic, enabled);
         final BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG);
@@ -689,16 +685,13 @@ public class BluetoothDevice {
                                 @SuppressWarnings("unchecked")
                                 final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class, Handler.class);
 
-                                if (DEBUG)
-                                    Log.d(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
+                                Log.v(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
                                 mServiceConstructors.put(uuid, constructor);
                             }
                         } catch (NoSuchFieldException ex) {
-                            if (DEBUG)
-                                Log.d(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
+                            Log.v(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
                         } catch (NoSuchMethodException ex) {
-                            if (DEBUG)
-                                Log.d(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ", " + Handler.class.getSimpleName() + ") for " + klass.getName());
+                            Log.v(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ", " + Handler.class.getSimpleName() + ") for " + klass.getName());
                         }
                     } catch (ClassNotFoundException | IllegalAccessException ex) {
                         Log.e(TAG, "ReflectedGattServiceFactory: " + ex.getMessage());
