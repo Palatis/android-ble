@@ -113,6 +113,7 @@ public class BluetoothDevice {
     @CallSuper
     public void setNativeDevice(android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
+        Log.d(TAG, "setNativeDevice(): " + device);
     }
 
     protected android.bluetooth.BluetoothDevice getDevice() {
@@ -715,5 +716,24 @@ public class BluetoothDevice {
             }
             return new BluetoothGattService(device, nativeService);
         }
+    }
+
+    protected static String stringFromConnectionState(@ConnectionState int state) {
+        switch (state) {
+            case BluetoothProfile.STATE_CONNECTED:
+                return "CONNECTED";
+            case BluetoothProfile.STATE_CONNECTING:
+                return "CONNECTING";
+            case BluetoothProfile.STATE_DISCONNECTED:
+                return "DISCONNECTED";
+            case BluetoothProfile.STATE_DISCONNECTING:
+                return "DISCONNECTING";
+        }
+        return "UNKNOWN";
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + " (" + getName() + " [" + getAddress() + "], native = " + mNativeDevice + ", " + stringFromConnectionState(getConnectionState()) + ")";
     }
 }
