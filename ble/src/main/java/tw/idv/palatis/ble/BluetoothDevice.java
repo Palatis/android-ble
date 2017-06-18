@@ -199,12 +199,23 @@ public class BluetoothDevice {
 
             Log.v(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
 
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                gatt.discoverServices();
-            } else {
-                mGattServices.clear();
-                if (!mAutoConnect)
-                    mGatt = null;
+            switch (newState) {
+                case BluetoothProfile.STATE_CONNECTED:
+                    gatt.discoverServices();
+                    break;
+                case BluetoothProfile.STATE_CONNECTING:
+                case BluetoothProfile.STATE_DISCONNECTING:
+                    mGattServices.clear();
+                    break;
+                case BluetoothProfile.STATE_DISCONNECTED:
+                    mGattServices.clear();
+                    if (!mAutoConnect) {
+                        mGatt = null;
+                        gatt.close();
+                    }
+                    break;
+                default:
+                    Log.d(TAG, "unknown state " + newState);
             }
 
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
@@ -365,7 +376,6 @@ public class BluetoothDevice {
             return;
 
         mGatt.disconnect();
-        mGatt = null;
         mConnectionState = BluetoothProfile.STATE_DISCONNECTING;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
     }
