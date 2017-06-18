@@ -18,8 +18,6 @@ import tw.idv.palatis.ble.BluetoothDevice;
 public class BluetoothGattService {
     private static final String TAG = "BluetoothGattService";
 
-    protected final Handler mHandler = new Handler(Looper.getMainLooper());
-
     @NonNull
     final android.bluetooth.BluetoothGattService mNativeService;
     @NonNull
