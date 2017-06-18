@@ -566,7 +566,7 @@ public class BluetoothDevice {
             dispatch(new OnDispatchCallback<OnServiceDiscoveredListener>() {
                 @Override
                 public void onDispatch(OnServiceDiscoveredListener observer) {
-                    observer.onServiceDiscovered(service);
+                    observer.onServiceDiscovered(BluetoothDevice.this, service);
                 }
             });
         }
@@ -581,7 +581,7 @@ public class BluetoothDevice {
             dispatch(new OnDispatchCallback<OnConnectionStateChangedListener>() {
                 @Override
                 public void onDispatch(OnConnectionStateChangedListener observer) {
-                    observer.onConnectionStateChanged(newState);
+                    observer.onConnectionStateChanged(BluetoothDevice.this, newState);
                 }
             });
         }
@@ -596,7 +596,7 @@ public class BluetoothDevice {
             dispatch(new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
-                    observer.onGattError(status);
+                    observer.onGattError(BluetoothDevice.this, status);
                 }
             });
         }
@@ -605,7 +605,7 @@ public class BluetoothDevice {
             dispatch(new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
-                    observer.onTimedOut(service);
+                    observer.onTimedOut(BluetoothDevice.this, service);
                 }
             });
         }
@@ -614,7 +614,7 @@ public class BluetoothDevice {
             dispatch(new OnDispatchCallback<OnErrorListener>() {
                 @Override
                 public void onDispatch(OnErrorListener observer) {
-                    observer.onFatalError(service, ex);
+                    observer.onFatalError(BluetoothDevice.this, service, ex);
                 }
             });
         }
@@ -622,23 +622,23 @@ public class BluetoothDevice {
 
     public interface OnErrorListener {
         @UiThread
-        void onGattError(int status);
+        void onGattError(@NonNull BluetoothDevice device, int status);
 
         @UiThread
-        void onTimedOut(@NonNull BluetoothGattService service);
+        void onTimedOut(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service);
 
         @UiThread
-        void onFatalError(@NonNull BluetoothGattService service, @NonNull Throwable ex);
+        void onFatalError(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service, @NonNull Throwable ex);
     }
 
     public interface OnServiceDiscoveredListener {
         @UiThread
-        void onServiceDiscovered(@NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
+        void onServiceDiscovered(@NonNull BluetoothDevice device, @NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
     }
 
     public interface OnConnectionStateChangedListener {
         @UiThread
-        void onConnectionStateChanged(@ConnectionState int newState);
+        void onConnectionStateChanged(@NonNull BluetoothDevice device, @ConnectionState int newState);
     }
 
     /**
