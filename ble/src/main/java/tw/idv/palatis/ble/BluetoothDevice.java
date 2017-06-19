@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import dalvik.system.DexFile;
@@ -88,7 +89,7 @@ public class BluetoothDevice {
     private boolean mAutoConnect = false;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
-    private final Executor mGattExecutor = Executors.newSingleThreadExecutor();
+    private ExecutorService mGattExecutor = Executors.newSingleThreadExecutor();
 
     private final OnErrorObservable mOnErrorObservable = new OnErrorObservable(mHandler);
     private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable(mHandler);
@@ -201,10 +202,13 @@ public class BluetoothDevice {
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
                     gatt.discoverServices();
+                    mGattExecutor = Executors.newSingleThreadExecutor();
                     break;
                 case BluetoothProfile.STATE_CONNECTING:
                 case BluetoothProfile.STATE_DISCONNECTING:
                     mGattServices.clear();
+                    mGattExecutor.shutdownNow();
+                    mGattExecutor = null;
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
                     mGattServices.clear();
