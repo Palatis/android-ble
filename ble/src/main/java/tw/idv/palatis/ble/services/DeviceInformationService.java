@@ -23,19 +23,19 @@ public class DeviceInformationService extends BluetoothGattService {
 
     // service UUID
     @SuppressWarnings("unused")
-    public static final UUID UUID_SERVICE = UUID.fromString("0000180a-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_SERVICE = new UUID(0x0000180a00001000L, 0x800000805f9b34fbL);
 
     // characteristics UUID
     @SuppressWarnings("WeakerAccess")
-    public static final UUID UUID_SYSTEM_ID = UUID.fromString("00002a23-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_SYSTEM_ID = new UUID(0x00002a2300001000L, 0x800000805f9b34fbL);
     @SuppressWarnings("WeakerAccess")
-    public static final UUID UUID_MODEL_NUMBER = UUID.fromString("00002a24-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_MODEL_NUMBER = new UUID(0x00002a2400001000L, 0x800000805f9b34fbL);
     @SuppressWarnings("WeakerAccess")
-    public static final UUID UUID_SERIAL_NUMBER = UUID.fromString("00002a25-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_SERIAL_NUMBER = new UUID(0x00002a2500001000L, 0x800000805f9b34fbL);
     @SuppressWarnings("WeakerAccess")
-    public static final UUID UUID_FIRMWARE_REVISION = UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_FIRMWARE_REVISION = new UUID(0x00002a2600001000L, 0x800000805f9b34fbL);
     @SuppressWarnings("WeakerAccess")
-    public static final UUID UUID_MANUFACTURER_NAME = UUID.fromString("00002a29-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_MANUFACTURER_NAME = new UUID(0x00002a2900001000L, 0x800000805f9b34fbL);
 
     private final BluetoothGattCharacteristic mSystemIdCharacteristic;
     private final BluetoothGattCharacteristic mModelNumberCharacteristic;

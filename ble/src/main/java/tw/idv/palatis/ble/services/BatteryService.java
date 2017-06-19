@@ -23,11 +23,11 @@ public class BatteryService extends BluetoothGattService {
 
     // service UUID
     @SuppressWarnings("unused")
-    public static final UUID UUID_SERVICE = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_SERVICE = new UUID(0x0000180f00001000L, 0x800000805f9b34fbL);
 
     // characteristic UUID
     @SuppressWarnings("WeakerAccess")
-    public static final UUID UUID_BATTERY_LEVEL = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
+    public static final UUID UUID_BATTERY_LEVEL = new UUID(0x00002a1900001000L, 0x800000805f9b34fbL);
 
     public static final int LEVEL_UNKNOWN = -1;
     public static final int LEVEL_UNAVAILABLE = -2;
