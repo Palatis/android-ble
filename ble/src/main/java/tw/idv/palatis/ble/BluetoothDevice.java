@@ -374,8 +374,8 @@ public class BluetoothDevice {
         if (mGatt == null)
             return;
 
-        mGatt.disconnect();
         mConnectionState = BluetoothProfile.STATE_DISCONNECTING;
+        mGatt.disconnect();
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
     }
 
