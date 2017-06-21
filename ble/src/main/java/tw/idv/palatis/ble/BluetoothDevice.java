@@ -444,6 +444,9 @@ public class BluetoothDevice {
     }
 
     public void readCharacteristic(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic) {
+        if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
+            return;
+
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -470,6 +473,9 @@ public class BluetoothDevice {
     }
 
     public void writeCharacteristic(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final byte[] data) {
+        if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
+            return;
+
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -495,6 +501,9 @@ public class BluetoothDevice {
     }
 
     public void writeDescriptor(final BluetoothGattService service, final BluetoothGattDescriptor descriptor, final byte[] data) {
+        if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
+            return;
+
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -522,6 +531,9 @@ public class BluetoothDevice {
     }
 
     public void setCharacteristicNotification(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
+        if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
+            return;
+
         if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
             Log.v(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
 
