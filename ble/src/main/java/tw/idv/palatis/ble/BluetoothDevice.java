@@ -500,6 +500,30 @@ public class BluetoothDevice {
         });
     }
 
+    public void readDescriptor(final BluetoothGattService service, final BluetoothGattDescriptor descriptor) {
+        if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
+            return;
+
+        try {
+            synchronized (BluetoothDevice.this) {
+                mGatt.readDescriptor(descriptor);
+
+                long start_ms = System.currentTimeMillis();
+                BluetoothDevice.this.wait(3000);
+                if (System.currentTimeMillis() - start_ms >= 3000) {
+                    mOnErrorObservable.dispatchTimedOut(service);
+                    return;
+                }
+
+                service.onDescriptorRead(descriptor);
+            }
+        } catch (InterruptedException ignored) {
+            Log.v(TAG, "readCharacteristic(): thread interrupted.");
+        } catch (Exception ex) {
+            mOnErrorObservable.dispatchFatalError(service, ex);
+        }
+    }
+
     public void writeDescriptor(final BluetoothGattService service, final BluetoothGattDescriptor descriptor, final byte[] data) {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
