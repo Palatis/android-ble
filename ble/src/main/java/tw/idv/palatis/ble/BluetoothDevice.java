@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
@@ -42,6 +43,12 @@ public class BluetoothDevice {
     private static final String TAG = "BluetoothDevice";
 
     private static final UUID UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+    private static BluetoothManager sBtMgr;
+
+    public static void initialize(Context context) {
+        sBtMgr = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+    }
 
     /**
      * the default factory, creates only {@link tw.idv.palatis.ble.services.BluetoothGattService}
@@ -84,8 +91,6 @@ public class BluetoothDevice {
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
-    @ConnectionState
-    private int mConnectionState = BluetoothProfile.STATE_DISCONNECTED;
     private boolean mAutoConnect = false;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -114,6 +119,7 @@ public class BluetoothDevice {
     @CallSuper
     public void setNativeDevice(android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
         Log.d(TAG, "setNativeDevice(): " + device);
     }
 
@@ -184,14 +190,14 @@ public class BluetoothDevice {
     @SuppressWarnings("WrongConstant")
     @ConnectionState
     public int getConnectionState() {
-        return mConnectionState;
+        if (mGatt == null)
+            return BluetoothProfile.STATE_DISCONNECTED;
+            return sBtMgr.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
     }
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
-            mConnectionState = newState;
-
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status + ", newState = " + newState);
                 mOnErrorObservable.dispatchGattError(status);
@@ -368,17 +374,13 @@ public class BluetoothDevice {
         if (mNativeDevice == null)
             return;
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
-        mConnectionState = BluetoothProfile.STATE_CONNECTING;
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
     }
 
     public void disconnect() {
         if (mGatt == null)
             return;
 
-        mConnectionState = BluetoothProfile.STATE_DISCONNECTING;
         mGatt.disconnect();
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(mConnectionState);
     }
 
     /**
