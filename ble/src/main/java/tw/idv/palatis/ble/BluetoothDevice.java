@@ -201,21 +201,19 @@ public class BluetoothDevice {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
-                    gatt.discoverServices();
                     mGattExecutor = Executors.newSingleThreadExecutor();
-                    break;
-                case BluetoothProfile.STATE_CONNECTING:
-                case BluetoothProfile.STATE_DISCONNECTING:
-                    mGattServices.clear();
-                    mGattExecutor.shutdownNow();
-                    mGattExecutor = null;
+                    gatt.discoverServices();
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
-                    mGattServices.clear();
                     if (!mAutoConnect) {
                         mGatt = null;
                         gatt.close();
                     }
+                case BluetoothProfile.STATE_DISCONNECTING:
+                    mGattExecutor.shutdownNow();
+                    mGattExecutor = null;
+                    mGattServices.clear();
+                case BluetoothProfile.STATE_CONNECTING:
                     break;
                 default:
                     Log.d(TAG, "unknown state " + newState);
