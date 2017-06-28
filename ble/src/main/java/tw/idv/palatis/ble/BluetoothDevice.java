@@ -348,7 +348,6 @@ public class BluetoothDevice {
                 BluetoothDevice.this.notify();
             }
         }
-
     };
 
     /**
