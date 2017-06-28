@@ -216,8 +216,10 @@ public class BluetoothDevice {
                         gatt.close();
                     }
                 case BluetoothProfile.STATE_DISCONNECTING:
-                    mGattExecutor.shutdownNow();
-                    mGattExecutor = null;
+                    if (mGattExecutor != null) {
+                        mGattExecutor.shutdownNow();
+                        mGattExecutor = null;
+                    }
                     mGattServices.clear();
                 case BluetoothProfile.STATE_CONNECTING:
                     break;
