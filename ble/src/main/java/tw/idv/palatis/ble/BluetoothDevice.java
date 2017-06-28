@@ -101,6 +101,7 @@ public class BluetoothDevice {
     public void setNativeDevice(android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+        mOnConnectionStateChangedObservable.dispatchAvailabilityChanged(isAvailable());
         Log.d(TAG, "setNativeDevice(): " + device);
     }
 
@@ -213,6 +214,7 @@ public class BluetoothDevice {
             }
 
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
+            mOnConnectionStateChangedObservable.dispatchAvailabilityChanged(isAvailable());
         }
 
         @Override
@@ -366,7 +368,6 @@ public class BluetoothDevice {
     public void disconnect() {
         if (mGatt == null)
             return;
-
         mGatt.disconnect();
     }
 
@@ -612,6 +613,15 @@ public class BluetoothDevice {
                 }
             });
         }
+
+        void dispatchAvailabilityChanged(final boolean available) {
+            dispatch(new OnDispatchCallback<OnConnectionStateChangedListener>() {
+                @Override
+                public void onDispatch(OnConnectionStateChangedListener observer) {
+                    observer.onAvailabilityChanged(BluetoothDevice.this, available);
+                }
+            });
+        }
     }
 
     private class OnErrorObservable extends Observable<OnErrorListener> {
@@ -664,6 +674,8 @@ public class BluetoothDevice {
     }
 
     public interface OnConnectionStateChangedListener {
+        void onAvailabilityChanged(@NonNull BluetoothDevice device, boolean available);
+
         @UiThread
         void onConnectionStateChanged(@NonNull BluetoothDevice device, @ConnectionState int newState);
     }
