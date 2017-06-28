@@ -441,88 +441,97 @@ public class BluetoothDevice {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
-        if (mGattExecutor == null)
-            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
+        try {
+            mGattExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        synchronized (BluetoothDevice.this) {
+                            mGatt.readCharacteristic(characteristic);
 
-        mGattExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    synchronized (BluetoothDevice.this) {
-                        mGatt.readCharacteristic(characteristic);
+                            long start_ms = System.currentTimeMillis();
+                            BluetoothDevice.this.wait(3000);
+                            if (System.currentTimeMillis() - start_ms >= 3000) {
+                                mOnErrorObservable.dispatchTimedOut(service);
+                                return;
+                            }
 
-                        long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
-                        if (System.currentTimeMillis() - start_ms >= 3000) {
-                            mOnErrorObservable.dispatchTimedOut(service);
-                            return;
+                            service.onCharacteristicRead(characteristic);
                         }
-
-                        service.onCharacteristicRead(characteristic);
+                    } catch (InterruptedException ignored) {
+                        Log.v(TAG, "readCharacteristic(): thread interrupted.");
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(service, ex);
                     }
-                } catch (InterruptedException ignored) {
-                    Log.v(TAG, "readCharacteristic(): thread interrupted.");
-                } catch (Exception ex) {
-                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
-            }
-        });
+            });
+        } catch (NullPointerException ex) {
+            mOnErrorObservable.dispatchFatalError(service, ex);
+        }
     }
 
     public void writeCharacteristic(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final byte[] data) {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
-        if (mGattExecutor == null)
-            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
-
-        mGattExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    synchronized (BluetoothDevice.this) {
-                        characteristic.setValue(data);
-                        mGatt.writeCharacteristic(characteristic);
-                        long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
-                        if (System.currentTimeMillis() - start_ms >= 3000) {
-                            mOnErrorObservable.dispatchTimedOut(service);
-                            return;
+        try {
+            mGattExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        synchronized (BluetoothDevice.this) {
+                            characteristic.setValue(data);
+                            mGatt.writeCharacteristic(characteristic);
+                            long start_ms = System.currentTimeMillis();
+                            BluetoothDevice.this.wait(3000);
+                            if (System.currentTimeMillis() - start_ms >= 3000) {
+                                mOnErrorObservable.dispatchTimedOut(service);
+                                return;
+                            }
+                            service.onCharacteristicWrite(characteristic);
                         }
-                        service.onCharacteristicWrite(characteristic);
+                    } catch (InterruptedException ignored) {
+                        Log.v(TAG, "writeCharacteristic(): thread interrupted.");
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(service, ex);
                     }
-                } catch (InterruptedException ignored) {
-                    Log.v(TAG, "writeCharacteristic(): thread interrupted.");
-                } catch (Exception ex) {
-                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
-            }
-        });
+            });
+        } catch (NullPointerException ex) {
+            mOnErrorObservable.dispatchFatalError(service, ex);
+        }
     }
 
     public void readDescriptor(final BluetoothGattService service, final BluetoothGattDescriptor descriptor) {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
-        if (mGattExecutor == null)
-            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
-
         try {
-            synchronized (BluetoothDevice.this) {
-                mGatt.readDescriptor(descriptor);
+            mGattExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
 
-                long start_ms = System.currentTimeMillis();
-                BluetoothDevice.this.wait(3000);
-                if (System.currentTimeMillis() - start_ms >= 3000) {
-                    mOnErrorObservable.dispatchTimedOut(service);
-                    return;
+                    try {
+                        synchronized (BluetoothDevice.this) {
+                            mGatt.readDescriptor(descriptor);
+
+                            long start_ms = System.currentTimeMillis();
+                            BluetoothDevice.this.wait(3000);
+                            if (System.currentTimeMillis() - start_ms >= 3000) {
+                                mOnErrorObservable.dispatchTimedOut(service);
+                                return;
+                            }
+
+                            service.onDescriptorRead(descriptor);
+                        }
+                    } catch (InterruptedException ignored) {
+                        Log.v(TAG, "readCharacteristic(): thread interrupted.");
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(service, ex);
+                    }
                 }
-
-                service.onDescriptorRead(descriptor);
-            }
-        } catch (InterruptedException ignored) {
-            Log.v(TAG, "readCharacteristic(): thread interrupted.");
-        } catch (Exception ex) {
+            });
+        } catch (NullPointerException ex) {
             mOnErrorObservable.dispatchFatalError(service, ex);
         }
     }
@@ -531,41 +540,39 @@ public class BluetoothDevice {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
-        if (mGattExecutor == null)
-            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
+        try {
+            mGattExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        synchronized (BluetoothDevice.this) {
+                            descriptor.setValue(data);
+                            mGatt.writeDescriptor(descriptor);
 
-        mGattExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    synchronized (BluetoothDevice.this) {
-                        descriptor.setValue(data);
-                        mGatt.writeDescriptor(descriptor);
+                            long start_ms = System.currentTimeMillis();
+                            BluetoothDevice.this.wait(3000);
+                            if (System.currentTimeMillis() - start_ms >= 3000) {
+                                mOnErrorObservable.dispatchTimedOut(service);
+                                return;
+                            }
 
-                        long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
-                        if (System.currentTimeMillis() - start_ms >= 3000) {
-                            mOnErrorObservable.dispatchTimedOut(service);
-                            return;
+                            service.onDescriptorWrite(descriptor);
                         }
-
-                        service.onDescriptorWrite(descriptor);
+                    } catch (InterruptedException ignored) {
+                        Log.v(TAG, "setCharacteristicNotification(): thread interrupted.");
+                    } catch (Exception ex) {
+                        mOnErrorObservable.dispatchFatalError(service, ex);
                     }
-                } catch (InterruptedException ignored) {
-                    Log.v(TAG, "setCharacteristicNotification(): thread interrupted.");
-                } catch (Exception ex) {
-                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
-            }
-        });
+            });
+        } catch (NullPointerException ex) {
+            mOnErrorObservable.dispatchFatalError(service, ex);
+        }
     }
 
     public void setCharacteristicNotification(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
-
-        if (mGattExecutor == null)
-            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
 
         if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
             Log.v(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
