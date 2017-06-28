@@ -358,10 +358,14 @@ public class BluetoothDevice {
      * @param autoConnect auto re-connect when disconnected
      */
     public void connect(@NonNull Context context, boolean autoConnect) {
-        if (mGatt != null && getConnectionState() != BluetoothProfile.STATE_DISCONNECTED)
-            throw new IllegalStateException("device " + getName() + " - " + getAddress() + " not in disconnected state.");
-        if (mNativeDevice == null)
+        if (mGatt != null && getConnectionState() != BluetoothProfile.STATE_DISCONNECTED) {
+            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
             return;
+        }
+        if (mNativeDevice == null) {
+            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTED);
+            return;
+        }
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
     }
 
