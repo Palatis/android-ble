@@ -192,7 +192,7 @@ public class BluetoothDevice {
     public int getConnectionState() {
         if (mGatt == null)
             return BluetoothProfile.STATE_DISCONNECTED;
-            return sBtMgr.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
+        return sBtMgr.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
     }
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -785,6 +785,6 @@ public class BluetoothDevice {
 
     @Override
     public String toString() {
-        return super.toString() + " (" + getName() + " [" + getAddress() + "], native = " + mNativeDevice + ", " + stringFromConnectionState(getConnectionState()) + ")";
+        return super.toString() + " (" + getName() + " [" + getAddress() + "], native = " + mNativeDevice + ", " + stringFromConnectionState(getConnectionState()) + ", rssi = " + getRssi() + ")";
     }
 }
