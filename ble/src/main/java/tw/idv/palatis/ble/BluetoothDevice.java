@@ -437,6 +437,9 @@ public class BluetoothDevice {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
+        if (mGattExecutor == null)
+            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
+
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -466,6 +469,9 @@ public class BluetoothDevice {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
+        if (mGattExecutor == null)
+            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
+
         mGattExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -494,6 +500,9 @@ public class BluetoothDevice {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
 
+        if (mGattExecutor == null)
+            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
+
         try {
             synchronized (BluetoothDevice.this) {
                 mGatt.readDescriptor(descriptor);
@@ -517,6 +526,9 @@ public class BluetoothDevice {
     public void writeDescriptor(final BluetoothGattService service, final BluetoothGattDescriptor descriptor, final byte[] data) {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
+
+        if (mGattExecutor == null)
+            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
 
         mGattExecutor.execute(new Runnable() {
             @Override
@@ -547,6 +559,9 @@ public class BluetoothDevice {
     public void setCharacteristicNotification(final BluetoothGattService service, final BluetoothGattCharacteristic characteristic, final boolean enabled) {
         if (getConnectionState() != BluetoothProfile.STATE_CONNECTED)
             return;
+
+        if (mGattExecutor == null)
+            mOnErrorObservable.dispatchFatalError(service, new IllegalStateException("device not connected", new NullPointerException("mGattExecutor is null")));
 
         if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0)
             Log.v(TAG, "setCharacteristicNotification(): characteristic doesn't support NOTIFY.");
