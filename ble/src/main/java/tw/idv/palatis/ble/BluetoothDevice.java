@@ -145,7 +145,9 @@ public class BluetoothDevice {
      */
     @Nullable
     public String getName() {
-        return mNativeDevice == null ? null : mNativeDevice.getName();
+        return getNativeDevice() == null ?
+                null :
+                getNativeDevice().getName();
     }
 
     /**
@@ -153,11 +155,11 @@ public class BluetoothDevice {
      */
     @NonNull
     public String getAddress() {
-        return mNativeDevice == null ? mDeviceAddress : mNativeDevice.getAddress();
+        return getNativeDevice() == null ? mDeviceAddress : getNativeDevice().getAddress();
     }
 
     public boolean isFake() {
-        return mNativeDevice == null;
+        return getNativeDevice() == null;
     }
 
     /**
@@ -175,11 +177,11 @@ public class BluetoothDevice {
     }
 
     public int getBondState() {
-        return mNativeDevice.getBondState();
+        return getNativeDevice().getBondState();
     }
 
     public void createBond() {
-        mNativeDevice.createBond();
+        getNativeDevice().createBond();
     }
 
     /**
