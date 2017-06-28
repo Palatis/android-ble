@@ -139,7 +139,7 @@ public class BluetoothDevice {
         return getNativeDevice() == null ? mDeviceAddress : getNativeDevice().getAddress();
     }
 
-    public boolean isFake() {
+    public boolean isAvailable() {
         return getNativeDevice() == null;
     }
 
