@@ -141,7 +141,7 @@ public class BluetoothDevice {
     }
 
     public boolean isAvailable() {
-        return getNativeDevice() == null;
+        return getNativeDevice() != null;
     }
 
     /**
