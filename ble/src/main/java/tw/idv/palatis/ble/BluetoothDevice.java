@@ -197,11 +197,11 @@ public class BluetoothDevice {
                     gatt.discoverServices();
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
+                case BluetoothProfile.STATE_DISCONNECTING:
                     if (!mAutoConnect) {
                         mGatt = null;
                         gatt.close();
                     }
-                case BluetoothProfile.STATE_DISCONNECTING:
                     if (mGattExecutor != null) {
                         mGattExecutor.shutdownNow();
                         mGattExecutor = null;
@@ -356,7 +356,7 @@ public class BluetoothDevice {
      * @param context     the application's {@link Context}
      * @param autoConnect auto re-connect when disconnected
      */
-    public void connect(@NonNull Context context, boolean autoConnect) {
+    public synchronized void connect(@NonNull Context context, boolean autoConnect) {
         if (mGatt != null && getConnectionState() != BluetoothProfile.STATE_DISCONNECTED) {
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
             return;
@@ -368,7 +368,7 @@ public class BluetoothDevice {
         mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
     }
 
-    public void disconnect() {
+    public synchronized void disconnect() {
         if (mGatt == null)
             return;
         mGatt.disconnect();
@@ -509,7 +509,6 @@ public class BluetoothDevice {
             mGattExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-
                     try {
                         synchronized (BluetoothDevice.this) {
                             mGatt.readDescriptor(descriptor);
