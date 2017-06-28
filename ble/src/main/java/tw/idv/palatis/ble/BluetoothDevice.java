@@ -123,7 +123,9 @@ public class BluetoothDevice {
         Log.d(TAG, "setNativeDevice(): " + device);
     }
 
-    protected android.bluetooth.BluetoothDevice getDevice() {
+    protected android.bluetooth.BluetoothDevice getNativeDevice() {
+        if (mGatt != null)
+            return mGatt.getDevice();
         return mNativeDevice;
     }
 
@@ -785,6 +787,6 @@ public class BluetoothDevice {
 
     @Override
     public String toString() {
-        return super.toString() + " (" + getName() + " [" + getAddress() + "], native = " + mNativeDevice + ", " + stringFromConnectionState(getConnectionState()) + ", rssi = " + getRssi() + ")";
+        return super.toString() + " (" + getName() + " [" + getAddress() + "], native = " + getNativeDevice() + ", " + stringFromConnectionState(getConnectionState()) + ", rssi = " + getRssi() + ")";
     }
 }
