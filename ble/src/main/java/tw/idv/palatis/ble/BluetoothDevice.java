@@ -371,7 +371,11 @@ public class BluetoothDevice {
     public synchronized void disconnect() {
         if (mGatt == null)
             return;
-        mGatt.disconnect();
+        mGatt.close();
+        mGatt = null;
+        mGattExecutor.shutdownNow();
+        mGattExecutor = null;
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
     }
 
     /**
