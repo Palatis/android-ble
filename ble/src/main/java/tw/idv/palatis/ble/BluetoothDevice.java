@@ -724,6 +724,6 @@ public class BluetoothDevice {
 
     @Override
     public String toString() {
-        return super.toString() + " (" + getName() + " [" + getAddress() + "], native = " + getNativeDevice() + ", " + stringFromConnectionState(getConnectionState()) + ", rssi = " + getRssi() + ")";
+        return getClass().getSimpleName() + "@" + hashCode() + " (" + getName() + " [" + getAddress() + "], native = " + getNativeDevice() + ", " + stringFromConnectionState(getConnectionState()) + ", rssi = " + getRssi() + ")";
     }
 }
