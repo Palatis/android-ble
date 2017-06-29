@@ -375,6 +375,7 @@ public class BluetoothDevice {
         mGatt = null;
         mGattExecutor.shutdownNow();
         mGattExecutor = null;
+        mGattServices.clear();
         mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
     }
 
