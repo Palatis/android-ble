@@ -2,8 +2,6 @@ package tw.idv.palatis.ble.services;
 
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.annotation.NonNull;
 
 import java.util.UUID;
