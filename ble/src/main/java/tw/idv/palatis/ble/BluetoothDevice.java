@@ -364,9 +364,11 @@ public class BluetoothDevice {
      */
     public synchronized void connect(@NonNull Context context) {
         if (mGatt != null) {
-            if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED)
-                mGatt.connect();
-            return;
+            if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
+                mGatt.close();
+                mGatt = null;
+            } else
+                return;
         }
         if (mNativeDevice == null)
             return;
