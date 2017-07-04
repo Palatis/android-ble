@@ -35,12 +35,22 @@ public class DeviceInformationService extends BluetoothGattService {
     @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_FIRMWARE_REVISION = new UUID(0x00002a2600001000L, 0x800000805f9b34fbL);
     @SuppressWarnings("WeakerAccess")
+    public static final UUID UUID_HARDWARE_REVISION = new UUID(0x00002a2700001000L, 0x800000805f9b34fbL);
+    @SuppressWarnings("WeakerAccess")
+    public static final UUID UUID_SOFTWARE_REVISION = new UUID(0x00002a2800001000L, 0x800000805f9b34fbL);
+    @SuppressWarnings("WeakerAccess")
     public static final UUID UUID_MANUFACTURER_NAME = new UUID(0x00002a2900001000L, 0x800000805f9b34fbL);
+    // dunno what's the format of this
+    // public static final UUID UUID_IEEE_11073_20601_REG_CERT = new UUID(0x00002a2a00001000L, 0x800000805f9b34fbL);
+    // lazy
+    // public static final UUID UUID_PNP_ID = new UUID(0x00002a5000001000L, 0x800000805f9b34fbL);
 
     private final BluetoothGattCharacteristic mSystemIdCharacteristic;
     private final BluetoothGattCharacteristic mModelNumberCharacteristic;
     private final BluetoothGattCharacteristic mSerialNumberCharacteristic;
     private final BluetoothGattCharacteristic mFirmwareRevisionCharacteristic;
+    private final BluetoothGattCharacteristic mHardwareRevisionCharacteristic;
+    private final BluetoothGattCharacteristic mSoftwareRevisionCharacteristic;
     private final BluetoothGattCharacteristic mManufacturerNameCharacteristic;
 
     private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable;
@@ -54,6 +64,8 @@ public class DeviceInformationService extends BluetoothGattService {
         mModelNumberCharacteristic = mNativeService.getCharacteristic(UUID_MODEL_NUMBER);
         mSerialNumberCharacteristic = mNativeService.getCharacteristic(UUID_SERIAL_NUMBER);
         mFirmwareRevisionCharacteristic = mNativeService.getCharacteristic(UUID_FIRMWARE_REVISION);
+        mHardwareRevisionCharacteristic = mNativeService.getCharacteristic(UUID_HARDWARE_REVISION);
+        mSoftwareRevisionCharacteristic = mNativeService.getCharacteristic(UUID_SOFTWARE_REVISION);
         mManufacturerNameCharacteristic = mNativeService.getCharacteristic(UUID_MANUFACTURER_NAME);
     }
 
@@ -68,10 +80,14 @@ public class DeviceInformationService extends BluetoothGattService {
             mOnDeviceInformationChangedObservable.dispatchSerialNumberChanged(characteristic.getStringValue(0));
         } else if (UUID_FIRMWARE_REVISION.equals(uuid)) {
             mOnDeviceInformationChangedObservable.dispatchFirmwareRevisionChanged(characteristic.getStringValue(0));
+        } else if (UUID_SOFTWARE_REVISION.equals(uuid)) {
+            mOnDeviceInformationChangedObservable.dispatchSoftwareRevisionChanged(characteristic.getStringValue(0));
+        } else if (UUID_HARDWARE_REVISION.equals(uuid)) {
+            mOnDeviceInformationChangedObservable.dispatchHardwareRevisionChanged(characteristic.getStringValue(0));
         } else if (UUID_MANUFACTURER_NAME.equals(uuid)) {
             mOnDeviceInformationChangedObservable.dispatchManufacturerNameChanged(characteristic.getStringValue(0));
         } else {
-            Log.e(TAG, "Unknown characteristic " + uuid);
+            Log.v(TAG, "Unknown characteristic " + uuid);
         }
 
         super.onCharacteristicRead(characteristic);
@@ -104,6 +120,22 @@ public class DeviceInformationService extends BluetoothGattService {
     public boolean getFirmwareRevision() {
         if (mFirmwareRevisionCharacteristic != null) {
             mDevice.readCharacteristic(this, mFirmwareRevisionCharacteristic);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean getHardwareRevision() {
+        if (mHardwareRevisionCharacteristic != null) {
+            mDevice.readCharacteristic(this, mHardwareRevisionCharacteristic);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean getSoftwareRevision() {
+        if (mSoftwareRevisionCharacteristic != null) {
+            mDevice.readCharacteristic(this, mSoftwareRevisionCharacteristic);
             return true;
         }
         return false;
@@ -166,6 +198,24 @@ public class DeviceInformationService extends BluetoothGattService {
             });
         }
 
+        void dispatchSoftwareRevisionChanged(final String newSoftwareRevision) {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+                @Override
+                public void onDispatch(OnDeviceInformationChangedListener observer) {
+                    observer.onSoftwareRevisionChanged(newSoftwareRevision);
+                }
+            });
+        }
+
+        void dispatchHardwareRevisionChanged(final String newHardwareRevision) {
+            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
+                @Override
+                public void onDispatch(OnDeviceInformationChangedListener observer) {
+                    observer.onHardwareRevisionChanged(newHardwareRevision);
+                }
+            });
+        }
+
         void dispatchManufacturerNameChanged(final String newManufacturerName) {
             dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
                 @Override
@@ -187,7 +237,13 @@ public class DeviceInformationService extends BluetoothGattService {
         void onSerialNumberChanged(@Nullable String newSerialNumber);
 
         @UiThread
-        void onFirmwareRevisionChanged(@Nullable String newRevisionNumber);
+        void onFirmwareRevisionChanged(@Nullable String newFirmwareRevision);
+
+        @UiThread
+        void onSoftwareRevisionChanged(@Nullable String newSoftwareRevision);
+
+        @UiThread
+        void onHardwareRevisionChanged(@Nullable String newHardwareRevision);
 
         @UiThread
         void onManufacturerNameChanged(@Nullable String newManufacturerName);
