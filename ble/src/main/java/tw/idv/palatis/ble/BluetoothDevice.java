@@ -198,7 +198,8 @@ public class BluetoothDevice {
                         public void run() {
                             try {
                                 Thread.sleep(250);
-                                gatt.discoverServices();
+                                if (mGatt != null && sBtMgr.getConnectionState(getNativeDevice(), BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED)
+                                    mGatt.discoverServices();
                             } catch (InterruptedException ex) {
                                 Log.v(TAG, "onConnectionStateChanged(): gat.discoverServices() interrupted.");
                             }
