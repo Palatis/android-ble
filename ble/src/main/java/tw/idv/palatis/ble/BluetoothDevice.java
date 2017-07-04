@@ -207,11 +207,8 @@ public class BluetoothDevice {
                     });
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
+                    close();
                 case BluetoothProfile.STATE_DISCONNECTING:
-                    if (mGatt != null) {
-                        mGatt.close();
-                        mGatt = null;
-                    }
                     if (mGattExecutor != null) {
                         mGattExecutor.shutdownNow();
                         mGattExecutor = null;
@@ -374,18 +371,24 @@ public class BluetoothDevice {
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTED);
             return;
         }
+        Log.d(TAG, "connect(): issued.");
         mGatt = mNativeDevice.connectGatt(context, false, mGattCallback);
     }
 
     public synchronized void disconnect() {
         if (mGatt == null)
             return;
+        Log.d(TAG, "disconnect(): disconnect issued.");
+        mGatt.disconnect();
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+    }
+
+    public synchronized void close() {
+        if (mGatt == null)
+            return;
+        Log.d(TAG, "close(): gatt connection closed.");
         mGatt.close();
         mGatt = null;
-        mGattExecutor.shutdownNow();
-        mGattExecutor = null;
-        mGattServices.clear();
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
     }
 
     /**
