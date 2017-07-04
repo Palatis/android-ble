@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "26.0.0-rc2"
+    buildToolsVersion "26.0.0"
 
     defaultConfig {
         minSdkVersion 19
@@ -28,7 +28,7 @@ dependencies {
     })
 
     compile 'no.nordicsemi.android.support.v18:scanner:1.0.0'
-    compile 'com.android.support:support-compat:25.3.1'
+    compile 'com.android.support:support-compat:25.4.0'
 
     testCompile 'junit:junit:4.12'
 }
