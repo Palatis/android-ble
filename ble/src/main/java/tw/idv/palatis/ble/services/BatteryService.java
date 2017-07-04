@@ -42,9 +42,8 @@ public class BatteryService extends BluetoothGattService {
         mOnBatteryLevelChangedObservable = new OnBatteryLevelChangedObservable(handler == null ? new Handler(Looper.getMainLooper()) : handler);
 
         mBatteryLevelCharacteristic = nativeService.getCharacteristic(UUID_BATTERY_LEVEL);
-        if (mBatteryLevelCharacteristic == null) {
-            Log.e(TAG, "this BATTERY_SERVICE doesn't have BATTERY_LEVEL characteristics... = =");
-        }
+        if (mBatteryLevelCharacteristic == null)
+            Log.v(TAG, "this BATTERY_SERVICE doesn't have BATTERY_LEVEL characteristics... = =");
     }
 
     @Override
