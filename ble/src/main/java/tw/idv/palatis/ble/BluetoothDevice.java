@@ -72,7 +72,6 @@ public class BluetoothDevice {
     private android.bluetooth.BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
-    private boolean mAutoConnect = false;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private ExecutorService mGattExecutor = Executors.newSingleThreadExecutor();
@@ -208,9 +207,9 @@ public class BluetoothDevice {
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
                 case BluetoothProfile.STATE_DISCONNECTING:
-                    if (!mAutoConnect) {
+                    if (mGatt != null) {
+                        mGatt.close();
                         mGatt = null;
-                        gatt.close();
                     }
                     if (mGattExecutor != null) {
                         mGattExecutor.shutdownNow();
@@ -363,10 +362,9 @@ public class BluetoothDevice {
     /**
      * connect to the device
      *
-     * @param context     the application's {@link Context}
-     * @param autoConnect auto re-connect when disconnected
+     * @param context the application's {@link Context}
      */
-    public synchronized void connect(@NonNull Context context, boolean autoConnect) {
+    public synchronized void connect(@NonNull Context context) {
         if (mGatt != null && getConnectionState() != BluetoothProfile.STATE_DISCONNECTED) {
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
             return;
@@ -375,7 +373,7 @@ public class BluetoothDevice {
             mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTED);
             return;
         }
-        mGatt = mNativeDevice.connectGatt(context, mAutoConnect = autoConnect, mGattCallback);
+        mGatt = mNativeDevice.connectGatt(context, false, mGattCallback);
     }
 
     public synchronized void disconnect() {
