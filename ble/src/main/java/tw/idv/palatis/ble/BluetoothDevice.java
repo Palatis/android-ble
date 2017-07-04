@@ -183,7 +183,7 @@ public class BluetoothDevice {
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, @ConnectionState int newState) {
+        public void onConnectionStateChange(final BluetoothGatt gatt, int status, @ConnectionState int newState) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status + ", newState = " + newState);
                 mOnErrorObservable.dispatchGattError(status);
@@ -194,7 +194,17 @@ public class BluetoothDevice {
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
                     mGattExecutor = Executors.newSingleThreadExecutor();
-                    gatt.discoverServices();
+                    mGattExecutor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                Thread.sleep(250);
+                                gatt.discoverServices();
+                            } catch (InterruptedException ex) {
+                                Log.v(TAG, "onConnectionStateChanged(): gat.discoverServices() interrupted.");
+                            }
+                        }
+                    });
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
                 case BluetoothProfile.STATE_DISCONNECTING:
