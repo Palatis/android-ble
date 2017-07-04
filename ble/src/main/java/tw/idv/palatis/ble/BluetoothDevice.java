@@ -363,14 +363,10 @@ public class BluetoothDevice {
      * @param context the application's {@link Context}
      */
     public synchronized void connect(@NonNull Context context) {
-        if (mGatt != null && getConnectionState() != BluetoothProfile.STATE_DISCONNECTED) {
-            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+        if (mGatt != null)
             return;
-        }
-        if (mNativeDevice == null) {
-            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(BluetoothProfile.STATE_DISCONNECTED);
+        if (mNativeDevice == null)
             return;
-        }
         Log.d(TAG, "connect(): issued.");
         mGatt = mNativeDevice.connectGatt(context, false, mGattCallback);
     }
