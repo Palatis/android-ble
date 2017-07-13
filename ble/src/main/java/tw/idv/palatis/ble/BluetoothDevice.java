@@ -208,6 +208,7 @@ public class BluetoothDevice {
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
                     close();
+                    mGatt = null;
                 case BluetoothProfile.STATE_DISCONNECTING:
                     if (mGattExecutor != null) {
                         mGattExecutor.shutdownNow();
