@@ -391,6 +391,7 @@ public class BluetoothDevice {
         Log.d(TAG, "close(): gatt connection closed.");
         mGatt.close();
         mGatt = null;
+        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
     }
 
     /**
