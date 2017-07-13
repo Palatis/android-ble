@@ -367,11 +367,15 @@ public class BluetoothDevice {
         if (mGatt != null) {
             if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
                 close();
-            } else
+            } else {
+                mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
                 return;
+            }
         }
-        if (mNativeDevice == null)
+        if (mNativeDevice == null) {
+            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
             return;
+        }
         Log.d(TAG, "connect(): issued.");
         mGatt = mNativeDevice.connectGatt(context, false, mGattCallback);
     }
