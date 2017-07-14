@@ -1,9 +1,7 @@
 package tw.idv.palatis.ble.sample;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
-import tw.idv.palatis.ble.R;
+import android.support.v7.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
