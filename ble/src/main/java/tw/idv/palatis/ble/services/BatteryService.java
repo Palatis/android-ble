@@ -1,16 +1,12 @@
 package tw.idv.palatis.ble.services;
 
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
-import android.util.Log;
 
 import java.util.UUID;
 
 import tw.idv.palatis.ble.BluetoothDevice;
+import tw.idv.palatis.ble.annotation.GattService;
 import tw.idv.palatis.ble.database.Observable;
 
 /**
@@ -34,16 +30,11 @@ public class BatteryService extends BluetoothGattService {
 
     private BluetoothGattCharacteristic mBatteryLevelCharacteristic;
 
-    private final OnBatteryLevelChangedObservable mOnBatteryLevelChangedObservable;
+    private final OnBatteryLevelChangedObservable mOnBatteryLevelChangedObservable = new OnBatteryLevelChangedObservable();
 
-    public BatteryService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService, @Nullable Handler handler) {
+    public BatteryService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         super(device, nativeService);
-
-        mOnBatteryLevelChangedObservable = new OnBatteryLevelChangedObservable(handler == null ? new Handler(Looper.getMainLooper()) : handler);
-
         mBatteryLevelCharacteristic = nativeService.getCharacteristic(UUID_BATTERY_LEVEL);
-        if (mBatteryLevelCharacteristic == null)
-            Log.v(TAG, "this BATTERY_SERVICE doesn't have BATTERY_LEVEL characteristics... = =");
     }
 
     @Override
@@ -54,7 +45,7 @@ public class BatteryService extends BluetoothGattService {
 
     @Override
     public void onCharacteristicChanged(@NonNull BluetoothGattCharacteristic characteristic) {
-        mOnBatteryLevelChangedObservable.dispatchBatteryLevelChanged(characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
+        mOnBatteryLevelChangedObservable.notifyBatteryLevelChanged(characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
     }
 
     public boolean getBatteryLevel() {
@@ -65,35 +56,23 @@ public class BatteryService extends BluetoothGattService {
         return true;
     }
 
-    public boolean addOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
-        boolean result = mOnBatteryLevelChangedObservable.registerObserver(listener);
+    public void addOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
+        mOnBatteryLevelChangedObservable.registerObserver(listener);
         mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
-        return result;
     }
 
-    public boolean removeOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
-        boolean result = mOnBatteryLevelChangedObservable.unregisterObserver(listener);
+    public void removeOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
+        mOnBatteryLevelChangedObservable.unregisterObserver(listener);
         mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
-        return result;
     }
 
     private class OnBatteryLevelChangedObservable extends Observable<OnBatteryLevelChangedListener> {
-        public OnBatteryLevelChangedObservable(@Nullable Handler handler) {
-            super(handler);
-        }
-
-        void dispatchBatteryLevelChanged(final int newLevel) {
-            dispatch(new OnDispatchCallback<OnBatteryLevelChangedListener>() {
-                @Override
-                public void onDispatch(final OnBatteryLevelChangedListener observer) {
-                    observer.onBatteryLevelChanged(newLevel);
-                }
-            });
+        void notifyBatteryLevelChanged(final int newLevel) {
+            notifyChange(observer -> observer.dispatchBatteryLevelChanged(newLevel));
         }
     }
 
     public interface OnBatteryLevelChangedListener {
-        @UiThread
-        void onBatteryLevelChanged(int newLevel);
+        void dispatchBatteryLevelChanged(int newLevel);
     }
 }

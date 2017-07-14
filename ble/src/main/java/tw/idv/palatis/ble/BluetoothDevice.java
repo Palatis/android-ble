@@ -8,12 +8,10 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
-import android.os.Looper;
 import android.support.annotation.CallSuper;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
 import android.util.Log;
 
 import java.lang.annotation.Retention;
@@ -25,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import tw.idv.palatis.ble.database.HandlerObserver;
 import tw.idv.palatis.ble.database.Observable;
 import tw.idv.palatis.ble.services.BluetoothGattService;
 
@@ -73,12 +72,11 @@ public class BluetoothDevice {
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
 
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
     private ExecutorService mGattExecutor = Executors.newSingleThreadExecutor();
 
-    private final OnErrorObservable mOnErrorObservable = new OnErrorObservable(mHandler);
-    private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable(mHandler);
-    private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable(mHandler);
+    private final OnErrorObservable mOnErrorObservable = new OnErrorObservable();
+    private final OnConnectionStateChangedObservable mOnConnectionStateChangedObservable = new OnConnectionStateChangedObservable();
+    private final OnServiceDiscoveredObservable mOnServiceDiscoveredObservable = new OnServiceDiscoveredObservable();
 
     private BluetoothGattServiceFactory mServiceFactory = DEFAULT_SERVICE_FACTORY;
 
@@ -99,8 +97,8 @@ public class BluetoothDevice {
     @CallSuper
     public void setNativeDevice(android.bluetooth.BluetoothDevice device) {
         mNativeDevice = device;
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
-        mOnConnectionStateChangedObservable.dispatchAvailabilityChanged(isAvailable());
+        mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
+        mOnConnectionStateChangedObservable.notifyAvailabilityChanged(isAvailable());
         Log.d(TAG, "setNativeDevice(): " + device);
     }
 
@@ -221,8 +219,8 @@ public class BluetoothDevice {
                     Log.d(TAG, "unknown state " + newState);
             }
 
-            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(newState);
-            mOnConnectionStateChangedObservable.dispatchAvailabilityChanged(isAvailable());
+            mOnConnectionStateChangedObservable.notifyConnectionStateChanged(newState);
+            mOnConnectionStateChangedObservable.notifyAvailabilityChanged(isAvailable());
         }
 
         @Override
@@ -236,8 +234,10 @@ public class BluetoothDevice {
             final List<android.bluetooth.BluetoothGattService> services = gatt.getServices();
             for (final android.bluetooth.BluetoothGattService nativeService : services) {
                 BluetoothGattService service = mServiceFactory.newInstance(BluetoothDevice.this, nativeService);
+                if (service == null)
+                    service = new BluetoothGattService(BluetoothDevice.this, nativeService);
                 mGattServices.add(service);
-                mOnServiceDiscoveredObservable.dispatchServiceDiscovered(service);
+                mOnServiceDiscoveredObservable.notifyServiceDiscovered(service);
             }
         }
 
@@ -368,12 +368,12 @@ public class BluetoothDevice {
             if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
                 close();
             } else {
-                mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+                mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
                 return;
             }
         }
         if (mNativeDevice == null) {
-            mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+            mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
             return;
         }
         Log.d(TAG, "connect(): issued.");
@@ -385,7 +385,7 @@ public class BluetoothDevice {
             return;
         Log.d(TAG, "disconnect(): disconnect issued.");
         mGatt.disconnect();
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+        mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
     }
 
     public synchronized void close() {
@@ -394,7 +394,7 @@ public class BluetoothDevice {
         Log.d(TAG, "close(): gatt connection closed.");
         mGatt.close();
         mGatt = null;
-        mOnConnectionStateChangedObservable.dispatchConnectionStateChanged(getConnectionState());
+        mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
     }
 
     /**
@@ -608,124 +608,79 @@ public class BluetoothDevice {
         writeDescriptor(service, descriptor, enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
     }
 
-    public boolean addOnErrorListener(@NonNull OnErrorListener listener) {
-        return mOnErrorObservable.registerObserver(listener);
+    // <editor-fold desc="Observer, Observable, and Listeners">
+    public void addOnErrorListener(@NonNull OnErrorListener listener) {
+        mOnErrorObservable.registerObserver(listener);
     }
 
-    public boolean removeOnErrorListener(@NonNull OnErrorListener listener) {
-        return mOnErrorObservable.unregisterObserver(listener);
+    public void removeOnErrorListener(@NonNull OnErrorListener listener) {
+        mOnErrorObservable.unregisterObserver(listener);
     }
 
-    public boolean addOnServiceDiscoveredListener(@NonNull OnServiceDiscoveredListener listener) {
-        return mOnServiceDiscoveredObservable.registerObserver(listener);
+    public void addOnServiceDiscoveredListener(@NonNull OnServiceDiscoveredListener listener) {
+        mOnServiceDiscoveredObservable.registerObserver(listener);
     }
 
-    public boolean removeOnServiceDiscoveredListener(@NonNull OnServiceDiscoveredListener listener) {
-        return mOnServiceDiscoveredObservable.unregisterObserver(listener);
+    public void removeOnServiceDiscoveredListener(@NonNull OnServiceDiscoveredListener listener) {
+        mOnServiceDiscoveredObservable.unregisterObserver(listener);
     }
 
-    public boolean addOnConnectionStateChangedListener(@NonNull OnConnectionStateChangedListener listener) {
-        return mOnConnectionStateChangedObservable.registerObserver(listener);
+    public void addOnConnectionStateChangedListener(@NonNull OnConnectionStateChangedListener listener) {
+        mOnConnectionStateChangedObservable.registerObserver(listener);
     }
 
-    public boolean removeOnConnectionStateChangedListener(@NonNull OnConnectionStateChangedListener listener) {
-        return mOnConnectionStateChangedObservable.unregisterObserver(listener);
-    }
-
-    private class OnServiceDiscoveredObservable extends Observable<OnServiceDiscoveredListener> {
-        public OnServiceDiscoveredObservable(@Nullable Handler handler) {
-            super(handler);
-        }
-
-        void dispatchServiceDiscovered(@NonNull final BluetoothGattService service) {
-            dispatch(new OnDispatchCallback<OnServiceDiscoveredListener>() {
-                @Override
-                public void onDispatch(OnServiceDiscoveredListener observer) {
-                    observer.onServiceDiscovered(BluetoothDevice.this, service);
-                }
-            });
-        }
-    }
-
-    private class OnConnectionStateChangedObservable extends Observable<OnConnectionStateChangedListener> {
-        public OnConnectionStateChangedObservable(@Nullable Handler handler) {
-            super(handler);
-        }
-
-        void dispatchConnectionStateChanged(@ConnectionState final int newState) {
-            dispatch(new OnDispatchCallback<OnConnectionStateChangedListener>() {
-                @Override
-                public void onDispatch(OnConnectionStateChangedListener observer) {
-                    observer.onConnectionStateChanged(BluetoothDevice.this, newState);
-                }
-            });
-        }
-
-        void dispatchAvailabilityChanged(final boolean available) {
-            dispatch(new OnDispatchCallback<OnConnectionStateChangedListener>() {
-                @Override
-                public void onDispatch(OnConnectionStateChangedListener observer) {
-                    observer.onAvailabilityChanged(BluetoothDevice.this, available);
-                }
-            });
-        }
-    }
-
-    private class OnErrorObservable extends Observable<OnErrorListener> {
-        public OnErrorObservable(@Nullable Handler handler) {
-            super(handler);
-        }
-
-        void dispatchGattError(final int status) {
-            dispatch(new OnDispatchCallback<OnErrorListener>() {
-                @Override
-                public void onDispatch(OnErrorListener observer) {
-                    observer.onGattError(BluetoothDevice.this, status);
-                }
-            });
-        }
-
-        void dispatchTimedOut(@NonNull final BluetoothGattService service) {
-            dispatch(new OnDispatchCallback<OnErrorListener>() {
-                @Override
-                public void onDispatch(OnErrorListener observer) {
-                    observer.onTimedOut(BluetoothDevice.this, service);
-                }
-            });
-        }
-
-        void dispatchFatalError(@NonNull final BluetoothGattService service, @NonNull final Throwable ex) {
-            dispatch(new OnDispatchCallback<OnErrorListener>() {
-                @Override
-                public void onDispatch(OnErrorListener observer) {
-                    observer.onFatalError(BluetoothDevice.this, service, ex);
-                }
-            });
-        }
+    public void removeOnConnectionStateChangedListener(@NonNull OnConnectionStateChangedListener listener) {
+        mOnConnectionStateChangedObservable.unregisterObserver(listener);
     }
 
     public interface OnErrorListener {
-        @UiThread
-        void onGattError(@NonNull BluetoothDevice device, int status);
+        void dispatchGattError(@NonNull BluetoothDevice device, int status);
 
-        @UiThread
-        void onTimedOut(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service);
+        void dispatchTimedOut(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service);
 
-        @UiThread
-        void onFatalError(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service, @NonNull Throwable ex);
+        void dispatchFatalError(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service, @NonNull Throwable ex);
+    }
+
+    private class OnErrorObservable extends Observable<OnErrorListener> {
+        void dispatchGattError(final int status) {
+            notifyChange(observer -> observer.dispatchGattError(BluetoothDevice.this, status));
+        }
+
+        void dispatchTimedOut(@NonNull final BluetoothGattService service) {
+            notifyChange(observer -> observer.dispatchTimedOut(BluetoothDevice.this, service));
+        }
+
+        void dispatchFatalError(@NonNull final BluetoothGattService service, @NonNull final Throwable ex) {
+            notifyChange(observer -> observer.dispatchFatalError(BluetoothDevice.this, service, ex));
+        }
     }
 
     public interface OnServiceDiscoveredListener {
-        @UiThread
-        void onServiceDiscovered(@NonNull BluetoothDevice device, @NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
+        void dispatchServiceDiscovered(@NonNull BluetoothDevice device, @NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
+    }
+
+    private class OnServiceDiscoveredObservable extends Observable<OnServiceDiscoveredListener> {
+        void notifyServiceDiscovered(@NonNull final BluetoothGattService service) {
+            notifyChange(observer -> observer.dispatchServiceDiscovered(BluetoothDevice.this, service));
+        }
     }
 
     public interface OnConnectionStateChangedListener {
-        void onAvailabilityChanged(@NonNull BluetoothDevice device, boolean available);
+        void dispatchAvailabilityChanged(@NonNull BluetoothDevice device, boolean available);
 
-        @UiThread
-        void onConnectionStateChanged(@NonNull BluetoothDevice device, @ConnectionState int newState);
+        void dispatchConnectionStateChanged(@NonNull BluetoothDevice device, @ConnectionState int newState);
     }
+
+    private class OnConnectionStateChangedObservable extends Observable<OnConnectionStateChangedListener> {
+        void notifyConnectionStateChanged(@ConnectionState final int newState) {
+            notifyChange(observer -> observer.dispatchConnectionStateChanged(BluetoothDevice.this, newState));
+        }
+
+        void notifyAvailabilityChanged(final boolean available) {
+            notifyChange(observer -> observer.dispatchAvailabilityChanged(BluetoothDevice.this, available));
+        }
+    }
+    // </editor-fold>
 
     protected static String stringFromConnectionState(@ConnectionState int state) {
         switch (state) {

@@ -1,16 +1,14 @@
 package tw.idv.palatis.ble.services;
 
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
 import android.util.Log;
 
 import java.util.UUID;
 
 import tw.idv.palatis.ble.BluetoothDevice;
+import tw.idv.palatis.ble.annotation.GattService;
 import tw.idv.palatis.ble.database.Observable;
 
 /**
@@ -53,13 +51,10 @@ public class DeviceInformationService extends BluetoothGattService {
     private final BluetoothGattCharacteristic mSoftwareRevisionCharacteristic;
     private final BluetoothGattCharacteristic mManufacturerNameCharacteristic;
 
-    private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable;
+    private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable();
 
-    public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService, @Nullable Handler handler) {
+    public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         super(device, nativeService);
-
-        mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable(handler == null ? new Handler(Looper.getMainLooper()) : handler);
-
         mSystemIdCharacteristic = mNativeService.getCharacteristic(UUID_SYSTEM_ID);
         mModelNumberCharacteristic = mNativeService.getCharacteristic(UUID_MODEL_NUMBER);
         mSerialNumberCharacteristic = mNativeService.getCharacteristic(UUID_SERIAL_NUMBER);
@@ -73,19 +68,19 @@ public class DeviceInformationService extends BluetoothGattService {
     public void onCharacteristicRead(@NonNull BluetoothGattCharacteristic characteristic) {
         final UUID uuid = characteristic.getUuid();
         if (UUID_SYSTEM_ID.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchSystemIdChanged(characteristic.getValue().clone());
+            mOnDeviceInformationChangedObservable.notifySystemIdChanged(characteristic.getValue().clone());
         } else if (UUID_MODEL_NUMBER.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchModelNumberChanged(characteristic.getStringValue(0));
+            mOnDeviceInformationChangedObservable.notifyModelNumberChanged(characteristic.getStringValue(0));
         } else if (UUID_SERIAL_NUMBER.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchSerialNumberChanged(characteristic.getStringValue(0));
+            mOnDeviceInformationChangedObservable.notifySerialNumberChanged(characteristic.getStringValue(0));
         } else if (UUID_FIRMWARE_REVISION.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchFirmwareRevisionChanged(characteristic.getStringValue(0));
+            mOnDeviceInformationChangedObservable.notifyFirmwareRevisionChanged(characteristic.getStringValue(0));
         } else if (UUID_SOFTWARE_REVISION.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchSoftwareRevisionChanged(characteristic.getStringValue(0));
+            mOnDeviceInformationChangedObservable.notifySoftwareRevisionChanged(characteristic.getStringValue(0));
         } else if (UUID_HARDWARE_REVISION.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchHardwareRevisionChanged(characteristic.getStringValue(0));
+            mOnDeviceInformationChangedObservable.notifyHardwareRevisionChanged(characteristic.getStringValue(0));
         } else if (UUID_MANUFACTURER_NAME.equals(uuid)) {
-            mOnDeviceInformationChangedObservable.dispatchManufacturerNameChanged(characteristic.getStringValue(0));
+            mOnDeviceInformationChangedObservable.notifyManufacturerNameChanged(characteristic.getStringValue(0));
         } else {
             Log.v(TAG, "Unknown characteristic " + uuid);
         }
@@ -149,103 +144,59 @@ public class DeviceInformationService extends BluetoothGattService {
         return false;
     }
 
-    public boolean addOnDeviceInformationChangedListener(@NonNull OnDeviceInformationChangedListener listener) {
-        return mOnDeviceInformationChangedObservable.registerObserver(listener);
+    // <editor-fold desc="Observer, Observable, and Listeners">
+    public void addOnDeviceInformationChangedListener(@NonNull OnDeviceInformationChangedListener listener) {
+        mOnDeviceInformationChangedObservable.registerObserver(listener);
     }
 
-    public boolean removeOnDeviceInformationChangedListener(@NonNull OnDeviceInformationChangedListener listener) {
-        return mOnDeviceInformationChangedObservable.unregisterObserver(listener);
-    }
-
-    private class OnDeviceInformationChangedObservable extends Observable<OnDeviceInformationChangedListener> {
-        public OnDeviceInformationChangedObservable(@Nullable Handler handler) {
-            super(handler);
-        }
-
-        void dispatchSystemIdChanged(final byte[] newSystemId) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(final OnDeviceInformationChangedListener observer) {
-                    observer.onSystemIdChanged(newSystemId);
-                }
-            });
-        }
-
-        void dispatchModelNumberChanged(final String newModelNumber) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(final OnDeviceInformationChangedListener observer) {
-                    observer.onModelNumberChanged(newModelNumber);
-                }
-            });
-        }
-
-        void dispatchSerialNumberChanged(final String newSerialNumber) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(final OnDeviceInformationChangedListener observer) {
-                    observer.onSerialNumberChanged(newSerialNumber);
-                }
-            });
-        }
-
-        void dispatchFirmwareRevisionChanged(final String newFirmwareRevision) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(final OnDeviceInformationChangedListener observer) {
-                    observer.onFirmwareRevisionChanged(newFirmwareRevision);
-                }
-            });
-        }
-
-        void dispatchSoftwareRevisionChanged(final String newSoftwareRevision) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(OnDeviceInformationChangedListener observer) {
-                    observer.onSoftwareRevisionChanged(newSoftwareRevision);
-                }
-            });
-        }
-
-        void dispatchHardwareRevisionChanged(final String newHardwareRevision) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(OnDeviceInformationChangedListener observer) {
-                    observer.onHardwareRevisionChanged(newHardwareRevision);
-                }
-            });
-        }
-
-        void dispatchManufacturerNameChanged(final String newManufacturerName) {
-            dispatch(new OnDispatchCallback<OnDeviceInformationChangedListener>() {
-                @Override
-                public void onDispatch(final OnDeviceInformationChangedListener observer) {
-                    observer.onManufacturerNameChanged(newManufacturerName);
-                }
-            });
-        }
+    public void removeOnDeviceInformationChangedListener(@NonNull OnDeviceInformationChangedListener listener) {
+        mOnDeviceInformationChangedObservable.unregisterObserver(listener);
     }
 
     public interface OnDeviceInformationChangedListener {
-        @UiThread
-        void onSystemIdChanged(@Nullable byte[] newSystemId);
+        void dispatchSystemIdChanged(@Nullable byte[] newSystemId);
 
-        @UiThread
-        void onModelNumberChanged(@Nullable String newModelNumber);
+        void dispatchModelNumberChanged(@Nullable String newModelNumber);
 
-        @UiThread
-        void onSerialNumberChanged(@Nullable String newSerialNumber);
+        void dispatchSerialNumberChanged(@Nullable String newSerialNumber);
 
-        @UiThread
-        void onFirmwareRevisionChanged(@Nullable String newFirmwareRevision);
+        void dispatchFirmwareRevisionChanged(@Nullable String newFirmwareRevision);
 
-        @UiThread
-        void onSoftwareRevisionChanged(@Nullable String newSoftwareRevision);
+        void dispatchSoftwareRevisionChanged(@Nullable String newSoftwareRevision);
 
-        @UiThread
-        void onHardwareRevisionChanged(@Nullable String newHardwareRevision);
+        void dispatchHardwareRevisionChanged(@Nullable String newHardwareRevision);
 
-        @UiThread
-        void onManufacturerNameChanged(@Nullable String newManufacturerName);
+        void dispatchManufacturerNameChanged(@Nullable String newManufacturerName);
     }
+
+    private class OnDeviceInformationChangedObservable extends Observable<OnDeviceInformationChangedListener> {
+        void notifySystemIdChanged(final byte[] newSystemId) {
+            notifyChange(observer -> observer.dispatchSystemIdChanged(newSystemId));
+        }
+
+        void notifyModelNumberChanged(final String newModelNumber) {
+            notifyChange(observer -> observer.dispatchModelNumberChanged(newModelNumber));
+        }
+
+        void notifySerialNumberChanged(final String newSerialNumber) {
+            notifyChange(observer -> observer.dispatchSerialNumberChanged(newSerialNumber));
+        }
+
+        void notifyFirmwareRevisionChanged(final String newFirmwareRevision) {
+            notifyChange(observer -> observer.dispatchFirmwareRevisionChanged(newFirmwareRevision));
+        }
+
+        void notifySoftwareRevisionChanged(final String newSoftwareRevision) {
+            notifyChange(observer -> observer.dispatchSoftwareRevisionChanged(newSoftwareRevision));
+        }
+
+        void notifyHardwareRevisionChanged(final String newHardwareRevision) {
+            notifyChange(observer -> observer.dispatchHardwareRevisionChanged(newHardwareRevision));
+        }
+
+        void notifyManufacturerNameChanged(final String newManufacturerName) {
+            notifyChange(observer -> observer.dispatchManufacturerNameChanged(newManufacturerName));
+        }
+    }
+    // </editor-fold>
 }
