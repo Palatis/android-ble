@@ -9,6 +9,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/ble" />
+            <option value="$PROJECT_DIR$/ble-annotations" />
+            <option value="$PROJECT_DIR$/ble-compiler" />
             <option value="$PROJECT_DIR$/sample" />
           </set>
         </option>

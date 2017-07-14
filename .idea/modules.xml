@@ -2,8 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/PalatisAndroidBluetoothLE.iml" filepath="$PROJECT_DIR$/PalatisAndroidBluetoothLE.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android-ble.iml" filepath="$PROJECT_DIR$/android-ble.iml" />
       <module fileurl="file://$PROJECT_DIR$/ble/ble.iml" filepath="$PROJECT_DIR$/ble/ble.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ble-annotations/ble-annotations.iml" filepath="$PROJECT_DIR$/ble-annotations/ble-annotations.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ble-compiler/ble-compiler.iml" filepath="$PROJECT_DIR$/ble-compiler/ble-compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/sample/sample.iml" filepath="$PROJECT_DIR$/sample/sample.iml" />
     </modules>
   </component>
