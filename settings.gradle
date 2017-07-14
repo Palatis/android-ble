@@ -1,1 +1,1 @@
-include ':sample', ':ble'
+include ':sample', ':ble', ':ble-compiler', ':ble-annotations'
