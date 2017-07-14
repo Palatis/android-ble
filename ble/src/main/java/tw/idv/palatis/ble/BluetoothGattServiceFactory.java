@@ -2,8 +2,8 @@ package tw.idv.palatis.ble;
 
 import android.bluetooth.BluetoothGatt;
 import android.content.Context;
-import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.io.IOException;
@@ -19,25 +19,34 @@ import dalvik.system.DexFile;
 import tw.idv.palatis.ble.services.BluetoothGattService;
 
 /**
- * factory used for creating {@link tw.idv.palatis.ble.services.BluetoothGattService}
+ * factory used for creating {@link BluetoothGattService}
  */
-public abstract class BluetoothGattServiceFactory {
-    private static final String TAG = "BtGattServiceFactory";
-
-    @NonNull
-    public abstract BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService);
-
+public interface BluetoothGattServiceFactory {
+    @Nullable
+    BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService);
 
     /**
      * the default factory, creates only {@link tw.idv.palatis.ble.services.BluetoothGattService}
      */
-    static final BluetoothGattServiceFactory DEFAULT_SERVICE_FACTORY = new BluetoothGattServiceFactory() {
-        @NonNull
-        @Override
-        public BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
-            return new BluetoothGattService(device, nativeService);
+    BluetoothGattServiceFactory DEFAULT_SERVICE_FACTORY = BluetoothGattService::new;
+
+    class MergedGattServiceFactory implements BluetoothGattServiceFactory {
+        private final BluetoothGattServiceFactory[] mFactories;
+
+        public MergedGattServiceFactory(BluetoothGattServiceFactory... factories) {
+            mFactories = factories;
         }
-    };
+
+        @Override
+        public BluetoothGattService newInstance(@NonNull final BluetoothDevice device, @NonNull final android.bluetooth.BluetoothGattService nativeService) {
+            for (final BluetoothGattServiceFactory factory : mFactories) {
+                final BluetoothGattService service = factory.newInstance(device, nativeService);
+                if (service != null)
+                    return service;
+            }
+            return null;
+        }
+    }
 
     /**
      * <p>
@@ -50,7 +59,7 @@ public abstract class BluetoothGattServiceFactory {
      *     <li>create an instance of {@link ReflectedGattServiceFactory}, and initialize it</li>
      *     <li>construct the {@link BluetoothDevice} from native {@link android.bluetooth.BluetoothDevice}</li>
      *     <li>set the factory with {@link BluetoothDevice#setServiceFactory(BluetoothGattServiceFactory)}</li>
-     *     <li>now you can {@link BluetoothDevice#connect(Context, boolean)}</li>
+     *     <li>now you can {@link BluetoothDevice#connect(Context)}</li>
      *   </ol>
      * </p>
      * <p>
@@ -59,13 +68,17 @@ public abstract class BluetoothGattServiceFactory {
      *     <li>all concrete subclasses of {@link BluetoothGattService} should have a public constructor with signature {@code <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetootGattService)}</li>
      *     <li>all concrete subclasses of {@link BluetoothGattService} should have a {@code UUID_SERVICE}</li>
      *     <li>tell proguard to {@code keep} the class, the constructor, and static field {@code UUID_SERVICE}.</li>
+     *     <li>does not work with Instant Run...</li>
      *   </ol>
      * </p>
      */
-    public static final class ReflectedGattServiceFactory extends BluetoothGattServiceFactory {
+    final class ReflectedGattServiceFactory implements BluetoothGattServiceFactory {
+        private static final String TAG = "RfltGattSvcFactory";
+
         private LinkedHashMap<UUID, Constructor<? extends BluetoothGattService>> mServiceConstructors = new LinkedHashMap<>();
 
         public ReflectedGattServiceFactory(Context context) {
+            Log.d(TAG, getClass().getCanonicalName() + " handles:");
             try {
                 final DexFile dexFile = new DexFile(context.getPackageCodePath());
                 final Enumeration<String> classNames = dexFile.entries();
@@ -81,17 +94,16 @@ public abstract class BluetoothGattServiceFactory {
                         try {
                             if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
                                 final Field uuidField = klass.getDeclaredField("UUID_SERVICE");
-                                UUID uuid = (UUID) uuidField.get(null);
-                                @SuppressWarnings("unchecked")
-                                final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class, Handler.class);
+                                final UUID uuid = (UUID) uuidField.get(null);
+                                @SuppressWarnings("unchecked") final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class);
 
-                                Log.v(TAG, "initialize(): Found constructor for BluetoothGattService: " + klass.getName());
+                                Log.d(TAG, "    " + klass.getName());
                                 mServiceConstructors.put(uuid, constructor);
                             }
                         } catch (NoSuchFieldException ex) {
                             Log.v(TAG, "initialize(): no UUID_SERVICE static field for " + klass.getName());
                         } catch (NoSuchMethodException ex) {
-                            Log.v(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ", " + Handler.class.getSimpleName() + ") for " + klass.getName());
+                            Log.v(TAG, "initialize(): no c-tor <init>(" + BluetoothGatt.class.getSimpleName() + ", " + BluetoothGattService.class.getSimpleName() + ") for " + klass.getName());
                         }
                     } catch (ClassNotFoundException | IllegalAccessException ex) {
                         Log.e(TAG, "ReflectedGattServiceFactory: " + ex.getMessage());
@@ -102,7 +114,6 @@ public abstract class BluetoothGattServiceFactory {
             }
         }
 
-        @NonNull
         @Override
         public BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
             final Constructor<? extends BluetoothGattService> ctor = mServiceConstructors.get(nativeService.getUuid());
@@ -113,7 +124,7 @@ public abstract class BluetoothGattServiceFactory {
                     throw new IllegalArgumentException("problem when creating an instance of BluetoothGattService " + nativeService.getUuid(), ex);
                 }
             }
-            return new BluetoothGattService(device, nativeService);
+            return null;
         }
     }
 }
