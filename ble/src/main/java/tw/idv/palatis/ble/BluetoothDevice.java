@@ -464,27 +464,24 @@ public class BluetoothDevice {
             return;
 
         try {
-            mGattExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        synchronized (BluetoothDevice.this) {
-                            mGatt.readCharacteristic(characteristic);
+            mGattExecutor.execute(() -> {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        mGatt.readCharacteristic(characteristic);
 
-                            long start_ms = System.currentTimeMillis();
-                            BluetoothDevice.this.wait(3000);
-                            if (System.currentTimeMillis() - start_ms >= 3000) {
-                                mOnErrorObservable.dispatchTimedOut(service);
-                                return;
-                            }
-
-                            service.onCharacteristicRead(characteristic);
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
                         }
-                    } catch (InterruptedException ignored) {
-                        Log.v(TAG, "readCharacteristic(): thread interrupted.");
-                    } catch (Exception ex) {
-                        mOnErrorObservable.dispatchFatalError(service, ex);
+
+                        service.onCharacteristicRead(characteristic);
                     }
+                } catch (InterruptedException ignored) {
+                    Log.v(TAG, "readCharacteristic(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
             });
         } catch (NullPointerException ex) {
@@ -497,26 +494,23 @@ public class BluetoothDevice {
             return;
 
         try {
-            mGattExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        synchronized (BluetoothDevice.this) {
-                            characteristic.setValue(data);
-                            mGatt.writeCharacteristic(characteristic);
-                            long start_ms = System.currentTimeMillis();
-                            BluetoothDevice.this.wait(3000);
-                            if (System.currentTimeMillis() - start_ms >= 3000) {
-                                mOnErrorObservable.dispatchTimedOut(service);
-                                return;
-                            }
-                            service.onCharacteristicWrite(characteristic);
+            mGattExecutor.execute(() -> {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        characteristic.setValue(data);
+                        mGatt.writeCharacteristic(characteristic);
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
                         }
-                    } catch (InterruptedException ignored) {
-                        Log.v(TAG, "writeCharacteristic(): thread interrupted.");
-                    } catch (Exception ex) {
-                        mOnErrorObservable.dispatchFatalError(service, ex);
+                        service.onCharacteristicWrite(characteristic);
                     }
+                } catch (InterruptedException ignored) {
+                    Log.v(TAG, "writeCharacteristic(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
             });
         } catch (NullPointerException ex) {
@@ -529,27 +523,24 @@ public class BluetoothDevice {
             return;
 
         try {
-            mGattExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        synchronized (BluetoothDevice.this) {
-                            mGatt.readDescriptor(descriptor);
+            mGattExecutor.execute(() -> {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        mGatt.readDescriptor(descriptor);
 
-                            long start_ms = System.currentTimeMillis();
-                            BluetoothDevice.this.wait(3000);
-                            if (System.currentTimeMillis() - start_ms >= 3000) {
-                                mOnErrorObservable.dispatchTimedOut(service);
-                                return;
-                            }
-
-                            service.onDescriptorRead(descriptor);
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
                         }
-                    } catch (InterruptedException ignored) {
-                        Log.v(TAG, "readCharacteristic(): thread interrupted.");
-                    } catch (Exception ex) {
-                        mOnErrorObservable.dispatchFatalError(service, ex);
+
+                        service.onDescriptorRead(descriptor);
                     }
+                } catch (InterruptedException ignored) {
+                    Log.v(TAG, "readCharacteristic(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
             });
         } catch (NullPointerException ex) {
@@ -562,28 +553,25 @@ public class BluetoothDevice {
             return;
 
         try {
-            mGattExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        synchronized (BluetoothDevice.this) {
-                            descriptor.setValue(data);
-                            mGatt.writeDescriptor(descriptor);
+            mGattExecutor.execute(() -> {
+                try {
+                    synchronized (BluetoothDevice.this) {
+                        descriptor.setValue(data);
+                        mGatt.writeDescriptor(descriptor);
 
-                            long start_ms = System.currentTimeMillis();
-                            BluetoothDevice.this.wait(3000);
-                            if (System.currentTimeMillis() - start_ms >= 3000) {
-                                mOnErrorObservable.dispatchTimedOut(service);
-                                return;
-                            }
-
-                            service.onDescriptorWrite(descriptor);
+                        long start_ms = System.currentTimeMillis();
+                        BluetoothDevice.this.wait(3000);
+                        if (System.currentTimeMillis() - start_ms >= 3000) {
+                            mOnErrorObservable.dispatchTimedOut(service);
+                            return;
                         }
-                    } catch (InterruptedException ignored) {
-                        Log.v(TAG, "setCharacteristicNotification(): thread interrupted.");
-                    } catch (Exception ex) {
-                        mOnErrorObservable.dispatchFatalError(service, ex);
+
+                        service.onDescriptorWrite(descriptor);
                     }
+                } catch (InterruptedException ignored) {
+                    Log.v(TAG, "setCharacteristicNotification(): thread interrupted.");
+                } catch (Exception ex) {
+                    mOnErrorObservable.dispatchFatalError(service, ex);
                 }
             });
         } catch (NullPointerException ex) {
