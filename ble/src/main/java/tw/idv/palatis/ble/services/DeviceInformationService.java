@@ -16,6 +16,7 @@ import tw.idv.palatis.ble.database.Observable;
  * <p>
  * {@see https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.device_information.xml}
  */
+@GattService
 public class DeviceInformationService extends BluetoothGattService {
     private static final String TAG = "DevInfoService";
 
