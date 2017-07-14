@@ -3,7 +3,6 @@ package tw.idv.palatis.ble.database;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 
-
 public class HandlerObserver<ObserverT> {
     private final Handler mHandler;
 
