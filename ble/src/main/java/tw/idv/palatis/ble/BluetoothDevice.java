@@ -202,6 +202,7 @@ public class BluetoothDevice {
                     });
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
+                    Log.d(TAG, "onConnectionStateChanged(): gatt conn closed.");
                     close();
                     mGatt = null;
                 case BluetoothProfile.STATE_DISCONNECTING:
