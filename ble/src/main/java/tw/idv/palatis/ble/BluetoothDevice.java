@@ -191,16 +191,13 @@ public class BluetoothDevice {
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
                     mGattExecutor = Executors.newSingleThreadExecutor();
-                    mGattExecutor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                Thread.sleep(250);
-                                if (mGatt != null && sBtMgr.getConnectionState(getNativeDevice(), BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED)
-                                    mGatt.discoverServices();
-                            } catch (InterruptedException ex) {
-                                Log.v(TAG, "onConnectionStateChanged(): gat.discoverServices() interrupted.");
-                            }
+                    mGattExecutor.execute(() -> {
+                        try {
+                            Thread.sleep(250);
+                            if (mGatt != null && sBtMgr.getConnectionState(getNativeDevice(), BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED)
+                                mGatt.discoverServices();
+                        } catch (InterruptedException ex) {
+                            Log.v(TAG, "onConnectionStateChanged(): gat.discoverServices() interrupted.");
                         }
                     });
                     break;
