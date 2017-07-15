@@ -680,7 +680,7 @@ public class BluetoothDevice {
         protected abstract void onServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service);
 
         @Override
-        public void dispatchServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service) {
+        public final void dispatchServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service) {
             dispatchChange(observer -> observer.onServiceDiscovered(device, service));
         }
     }
