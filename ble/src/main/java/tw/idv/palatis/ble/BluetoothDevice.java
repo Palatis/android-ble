@@ -621,6 +621,35 @@ public class BluetoothDevice {
         mOnConnectionStateChangedObservable.unregisterObserver(listener);
     }
 
+    public abstract static class HandlerOnErrorListener
+            extends HandlerObserver<HandlerOnErrorListener>
+            implements OnErrorListener {
+        public HandlerOnErrorListener(final Handler handler) {
+            super(handler);
+        }
+
+        protected abstract void onGattError(@NonNull final BluetoothDevice device, final int status);
+
+        protected abstract void onTimedOut(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service);
+
+        protected abstract void onFatalError(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service, @Nullable final Throwable ex);
+
+        @Override
+        public void dispatchGattError(@NonNull final BluetoothDevice device, final int status) {
+            dispatchChange(observer -> observer.onGattError(device, status));
+        }
+
+        @Override
+        public void dispatchTimedOut(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service) {
+            dispatchChange(observer -> observer.onTimedOut(device, service));
+        }
+
+        @Override
+        public void dispatchFatalError(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service, @Nullable final Throwable ex) {
+            dispatchChange(observer -> observer.onFatalError(device, service, ex));
+        }
+    }
+
     public interface OnErrorListener {
         void dispatchGattError(@NonNull BluetoothDevice device, int status);
 
@@ -643,6 +672,21 @@ public class BluetoothDevice {
         }
     }
 
+    public abstract static class HandlerOnServiceDiscoveredListener
+            extends HandlerObserver<HandlerOnServiceDiscoveredListener>
+            implements OnServiceDiscoveredListener {
+        public HandlerOnServiceDiscoveredListener(final Handler handler) {
+            super(handler);
+        }
+
+        protected abstract void onServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service);
+
+        @Override
+        public void dispatchServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service) {
+            dispatchChange(observer -> observer.onServiceDiscovered(device, service));
+        }
+    }
+
     public interface OnServiceDiscoveredListener {
         void dispatchServiceDiscovered(@NonNull BluetoothDevice device, @NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
     }
@@ -650,6 +694,28 @@ public class BluetoothDevice {
     private class OnServiceDiscoveredObservable extends Observable<OnServiceDiscoveredListener> {
         void notifyServiceDiscovered(@NonNull final BluetoothGattService service) {
             notifyChange(observer -> observer.dispatchServiceDiscovered(BluetoothDevice.this, service));
+        }
+    }
+
+    public abstract static class HandlerOnConnectionStateChangedListener
+            extends HandlerObserver<HandlerOnConnectionStateChangedListener>
+            implements OnConnectionStateChangedListener {
+        public HandlerOnConnectionStateChangedListener(final Handler handler) {
+            super(handler);
+        }
+
+        protected abstract void onAvailabilityChanged(@NonNull final BluetoothDevice device, final boolean available);
+
+        protected abstract void onConnectionStateChanged(final BluetoothDevice device, final int newState);
+
+        @Override
+        public void dispatchAvailabilityChanged(@NonNull final BluetoothDevice device, final boolean available) {
+            dispatchChange(observer -> observer.onAvailabilityChanged(device, available));
+        }
+
+        @Override
+        public void dispatchConnectionStateChanged(@NonNull final BluetoothDevice device, final int newState) {
+            dispatchChange(observer -> observer.onConnectionStateChanged(device, newState));
         }
     }
 
