@@ -184,6 +184,16 @@ public class BluetoothDevice {
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status + ", newState = " + newState);
                 mOnErrorObservable.dispatchGattError(status);
+
+                gatt.close();
+                if (mGatt == gatt) {
+                    if (mGattExecutor != null) {
+                        mGattExecutor.shutdownNow();
+                        mGattExecutor = null;
+                    }
+                    mGattServices.clear();
+                    mGatt = null;
+                }
             }
 
             Log.v(TAG, "onConnectionStateChanged(): device = " + getAddress() + ", " + status + " => " + newState);
