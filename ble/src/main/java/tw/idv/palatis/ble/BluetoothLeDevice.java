@@ -100,7 +100,7 @@ public class BluetoothLeDevice {
         mNativeDevice = device;
         mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
         mOnConnectionStateChangedObservable.notifyAvailabilityChanged(isAvailable());
-        Log.d(TAG, "setNativeDevice(): " + device);
+        Log.d(TAG, "setNativeDevice(): " + getAddress() + " => " + device);
     }
 
     protected BluetoothDevice getNativeDevice() {
