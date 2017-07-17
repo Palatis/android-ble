@@ -5,7 +5,7 @@ import android.support.annotation.NonNull;
 
 import java.util.UUID;
 
-import tw.idv.palatis.ble.BluetoothDevice;
+import tw.idv.palatis.ble.BluetoothLeDevice;
 import tw.idv.palatis.ble.annotation.GattService;
 import tw.idv.palatis.ble.database.Observable;
 
@@ -33,7 +33,7 @@ public class BatteryService extends BluetoothGattService {
 
     private final OnBatteryLevelChangedObservable mOnBatteryLevelChangedObservable = new OnBatteryLevelChangedObservable();
 
-    public BatteryService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+    public BatteryService(@NonNull BluetoothLeDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         super(device, nativeService);
         mBatteryLevelCharacteristic = nativeService.getCharacteristic(UUID_BATTERY_LEVEL);
     }

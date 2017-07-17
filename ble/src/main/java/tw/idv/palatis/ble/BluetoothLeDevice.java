@@ -1,5 +1,6 @@
 package tw.idv.palatis.ble;
 
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -30,8 +31,8 @@ import tw.idv.palatis.ble.services.BluetoothGattService;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static tw.idv.palatis.ble.BluetoothGattServiceFactory.DEFAULT_SERVICE_FACTORY;
 
-public class BluetoothDevice {
-    private static final String TAG = "BluetoothDevice";
+public class BluetoothLeDevice {
+    private static final String TAG = "BluetoothLeDevice";
 
     private static final UUID UUID_DESCRIPTOR_CLIENT_CHARACTERISTIC_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
@@ -68,7 +69,7 @@ public class BluetoothDevice {
 
     private final long mId;
     private final String mDeviceAddress;
-    private android.bluetooth.BluetoothDevice mNativeDevice;
+    private BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
 
@@ -82,27 +83,27 @@ public class BluetoothDevice {
 
     private final ArrayList<BluetoothGattService> mGattServices = new ArrayList<>();
 
-    public BluetoothDevice(@NonNull String address) {
+    public BluetoothLeDevice(@NonNull String address) {
         mDeviceAddress = address;
         mId = deviceIdFromAddress(getAddress());
         setNativeDevice(null);
     }
 
-    public BluetoothDevice(@NonNull android.bluetooth.BluetoothDevice device) {
+    public BluetoothLeDevice(@NonNull BluetoothDevice device) {
         mDeviceAddress = device.getAddress();
         mId = deviceIdFromAddress(getAddress());
         setNativeDevice(device);
     }
 
     @CallSuper
-    public void setNativeDevice(android.bluetooth.BluetoothDevice device) {
+    public void setNativeDevice(BluetoothDevice device) {
         mNativeDevice = device;
         mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
         mOnConnectionStateChangedObservable.notifyAvailabilityChanged(isAvailable());
         Log.d(TAG, "setNativeDevice(): " + device);
     }
 
-    protected android.bluetooth.BluetoothDevice getNativeDevice() {
+    protected BluetoothDevice getNativeDevice() {
         if (mGatt != null)
             return mGatt.getDevice();
         return mNativeDevice;
@@ -241,9 +242,9 @@ public class BluetoothDevice {
 
             final List<android.bluetooth.BluetoothGattService> services = gatt.getServices();
             for (final android.bluetooth.BluetoothGattService nativeService : services) {
-                BluetoothGattService service = mServiceFactory.newInstance(BluetoothDevice.this, nativeService);
+                BluetoothGattService service = mServiceFactory.newInstance(BluetoothLeDevice.this, nativeService);
                 if (service == null)
-                    service = new BluetoothGattService(BluetoothDevice.this, nativeService);
+                    service = new BluetoothGattService(BluetoothLeDevice.this, nativeService);
                 mGattServices.add(service);
                 mOnServiceDiscoveredObservable.notifyServiceDiscovered(service);
             }
@@ -267,8 +268,8 @@ public class BluetoothDevice {
                     ", data = " + Arrays.toString(characteristic.getValue())
             );
 
-            synchronized (BluetoothDevice.this) {
-                BluetoothDevice.this.notify();
+            synchronized (BluetoothLeDevice.this) {
+                BluetoothLeDevice.this.notify();
             }
         }
 
@@ -290,8 +291,8 @@ public class BluetoothDevice {
                     ", data = " + Arrays.toString(characteristic.getValue())
             );
 
-            synchronized (BluetoothDevice.this) {
-                BluetoothDevice.this.notify();
+            synchronized (BluetoothLeDevice.this) {
+                BluetoothLeDevice.this.notify();
             }
         }
 
@@ -335,8 +336,8 @@ public class BluetoothDevice {
                     ", data = " + Arrays.toString(descriptor.getValue())
             );
 
-            synchronized (BluetoothDevice.this) {
-                BluetoothDevice.this.notify();
+            synchronized (BluetoothLeDevice.this) {
+                BluetoothLeDevice.this.notify();
             }
         }
 
@@ -360,8 +361,8 @@ public class BluetoothDevice {
                     ", data = " + Arrays.toString(descriptor.getValue())
             );
 
-            synchronized (BluetoothDevice.this) {
-                BluetoothDevice.this.notify();
+            synchronized (BluetoothLeDevice.this) {
+                BluetoothLeDevice.this.notify();
             }
         }
     };
@@ -474,11 +475,11 @@ public class BluetoothDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothDevice.this) {
+                    synchronized (BluetoothLeDevice.this) {
                         mGatt.readCharacteristic(characteristic);
 
                         long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
+                        BluetoothLeDevice.this.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -504,11 +505,11 @@ public class BluetoothDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothDevice.this) {
+                    synchronized (BluetoothLeDevice.this) {
                         characteristic.setValue(data);
                         mGatt.writeCharacteristic(characteristic);
                         long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
+                        BluetoothLeDevice.this.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -533,11 +534,11 @@ public class BluetoothDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothDevice.this) {
+                    synchronized (BluetoothLeDevice.this) {
                         mGatt.readDescriptor(descriptor);
 
                         long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
+                        BluetoothLeDevice.this.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -563,12 +564,12 @@ public class BluetoothDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothDevice.this) {
+                    synchronized (BluetoothLeDevice.this) {
                         descriptor.setValue(data);
                         mGatt.writeDescriptor(descriptor);
 
                         long start_ms = System.currentTimeMillis();
-                        BluetoothDevice.this.wait(3000);
+                        BluetoothLeDevice.this.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -636,47 +637,47 @@ public class BluetoothDevice {
             super(handler);
         }
 
-        protected abstract void onGattError(@NonNull final BluetoothDevice device, final int status);
+        protected abstract void onGattError(@NonNull final BluetoothLeDevice device, final int status);
 
-        protected abstract void onTimedOut(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service);
+        protected abstract void onTimedOut(@NonNull final BluetoothLeDevice device, @NonNull final BluetoothGattService service);
 
-        protected abstract void onFatalError(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service, @Nullable final Throwable ex);
+        protected abstract void onFatalError(@NonNull final BluetoothLeDevice device, @NonNull final BluetoothGattService service, @Nullable final Throwable ex);
 
         @Override
-        public void dispatchGattError(@NonNull final BluetoothDevice device, final int status) {
+        public void dispatchGattError(@NonNull final BluetoothLeDevice device, final int status) {
             dispatchChange(observer -> observer.onGattError(device, status));
         }
 
         @Override
-        public void dispatchTimedOut(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service) {
+        public void dispatchTimedOut(@NonNull final BluetoothLeDevice device, @NonNull final BluetoothGattService service) {
             dispatchChange(observer -> observer.onTimedOut(device, service));
         }
 
         @Override
-        public void dispatchFatalError(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service, @Nullable final Throwable ex) {
+        public void dispatchFatalError(@NonNull final BluetoothLeDevice device, @NonNull final BluetoothGattService service, @Nullable final Throwable ex) {
             dispatchChange(observer -> observer.onFatalError(device, service, ex));
         }
     }
 
     public interface OnErrorListener {
-        void dispatchGattError(@NonNull BluetoothDevice device, int status);
+        void dispatchGattError(@NonNull BluetoothLeDevice device, int status);
 
-        void dispatchTimedOut(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service);
+        void dispatchTimedOut(@NonNull BluetoothLeDevice device, @NonNull BluetoothGattService service);
 
-        void dispatchFatalError(@NonNull BluetoothDevice device, @NonNull BluetoothGattService service, @NonNull Throwable ex);
+        void dispatchFatalError(@NonNull BluetoothLeDevice device, @NonNull BluetoothGattService service, @NonNull Throwable ex);
     }
 
     private class OnErrorObservable extends Observable<OnErrorListener> {
         void dispatchGattError(final int status) {
-            notifyChange(observer -> observer.dispatchGattError(BluetoothDevice.this, status));
+            notifyChange(observer -> observer.dispatchGattError(BluetoothLeDevice.this, status));
         }
 
         void dispatchTimedOut(@NonNull final BluetoothGattService service) {
-            notifyChange(observer -> observer.dispatchTimedOut(BluetoothDevice.this, service));
+            notifyChange(observer -> observer.dispatchTimedOut(BluetoothLeDevice.this, service));
         }
 
         void dispatchFatalError(@NonNull final BluetoothGattService service, @NonNull final Throwable ex) {
-            notifyChange(observer -> observer.dispatchFatalError(BluetoothDevice.this, service, ex));
+            notifyChange(observer -> observer.dispatchFatalError(BluetoothLeDevice.this, service, ex));
         }
     }
 
@@ -687,21 +688,21 @@ public class BluetoothDevice {
             super(handler);
         }
 
-        protected abstract void onServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service);
+        protected abstract void onServiceDiscovered(@NonNull final BluetoothLeDevice device, @NonNull final BluetoothGattService service);
 
         @Override
-        public final void dispatchServiceDiscovered(@NonNull final BluetoothDevice device, @NonNull final BluetoothGattService service) {
+        public final void dispatchServiceDiscovered(@NonNull final BluetoothLeDevice device, @NonNull final BluetoothGattService service) {
             dispatchChange(observer -> observer.onServiceDiscovered(device, service));
         }
     }
 
     public interface OnServiceDiscoveredListener {
-        void dispatchServiceDiscovered(@NonNull BluetoothDevice device, @NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
+        void dispatchServiceDiscovered(@NonNull BluetoothLeDevice device, @NonNull tw.idv.palatis.ble.services.BluetoothGattService service);
     }
 
     private class OnServiceDiscoveredObservable extends Observable<OnServiceDiscoveredListener> {
         void notifyServiceDiscovered(@NonNull final BluetoothGattService service) {
-            notifyChange(observer -> observer.dispatchServiceDiscovered(BluetoothDevice.this, service));
+            notifyChange(observer -> observer.dispatchServiceDiscovered(BluetoothLeDevice.this, service));
         }
     }
 
@@ -712,34 +713,34 @@ public class BluetoothDevice {
             super(handler);
         }
 
-        protected abstract void onAvailabilityChanged(@NonNull final BluetoothDevice device, final boolean available);
+        protected abstract void onAvailabilityChanged(@NonNull final BluetoothLeDevice device, final boolean available);
 
-        protected abstract void onConnectionStateChanged(final BluetoothDevice device, final int newState);
+        protected abstract void onConnectionStateChanged(final BluetoothLeDevice device, final int newState);
 
         @Override
-        public void dispatchAvailabilityChanged(@NonNull final BluetoothDevice device, final boolean available) {
+        public void dispatchAvailabilityChanged(@NonNull final BluetoothLeDevice device, final boolean available) {
             dispatchChange(observer -> observer.onAvailabilityChanged(device, available));
         }
 
         @Override
-        public void dispatchConnectionStateChanged(@NonNull final BluetoothDevice device, final int newState) {
+        public void dispatchConnectionStateChanged(@NonNull final BluetoothLeDevice device, final int newState) {
             dispatchChange(observer -> observer.onConnectionStateChanged(device, newState));
         }
     }
 
     public interface OnConnectionStateChangedListener {
-        void dispatchAvailabilityChanged(@NonNull BluetoothDevice device, boolean available);
+        void dispatchAvailabilityChanged(@NonNull BluetoothLeDevice device, boolean available);
 
-        void dispatchConnectionStateChanged(@NonNull BluetoothDevice device, @ConnectionState int newState);
+        void dispatchConnectionStateChanged(@NonNull BluetoothLeDevice device, @ConnectionState int newState);
     }
 
     private class OnConnectionStateChangedObservable extends Observable<OnConnectionStateChangedListener> {
         void notifyConnectionStateChanged(@ConnectionState final int newState) {
-            notifyChange(observer -> observer.dispatchConnectionStateChanged(BluetoothDevice.this, newState));
+            notifyChange(observer -> observer.dispatchConnectionStateChanged(BluetoothLeDevice.this, newState));
         }
 
         void notifyAvailabilityChanged(final boolean available) {
-            notifyChange(observer -> observer.dispatchAvailabilityChanged(BluetoothDevice.this, available));
+            notifyChange(observer -> observer.dispatchAvailabilityChanged(BluetoothLeDevice.this, available));
         }
     }
     // </editor-fold>

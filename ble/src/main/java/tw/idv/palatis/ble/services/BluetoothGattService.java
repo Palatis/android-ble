@@ -6,7 +6,7 @@ import android.support.annotation.NonNull;
 
 import java.util.UUID;
 
-import tw.idv.palatis.ble.BluetoothDevice;
+import tw.idv.palatis.ble.BluetoothLeDevice;
 
 /**
  * A delegate service to wrap around the native {@link android.bluetooth.BluetoothGattService}
@@ -19,9 +19,9 @@ public class BluetoothGattService {
     @NonNull
     final android.bluetooth.BluetoothGattService mNativeService;
     @NonNull
-    protected final BluetoothDevice mDevice;
+    protected final BluetoothLeDevice mDevice;
 
-    public BluetoothGattService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+    public BluetoothGattService(@NonNull BluetoothLeDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         mDevice = device;
         mNativeService = nativeService;
     }
@@ -51,10 +51,10 @@ public class BluetoothGattService {
     /**
      * a convinient function to return the bluetooth device associated with this service
      *
-     * @return the {@link BluetoothDevice}
+     * @return the {@link BluetoothLeDevice}
      */
     @NonNull
-    public BluetoothDevice getDevice() {
+    public BluetoothLeDevice getDevice() {
         return mDevice;
     }
 

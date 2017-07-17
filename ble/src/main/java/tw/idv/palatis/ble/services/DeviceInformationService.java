@@ -7,7 +7,7 @@ import android.util.Log;
 
 import java.util.UUID;
 
-import tw.idv.palatis.ble.BluetoothDevice;
+import tw.idv.palatis.ble.BluetoothLeDevice;
 import tw.idv.palatis.ble.annotation.GattService;
 import tw.idv.palatis.ble.database.Observable;
 
@@ -54,7 +54,7 @@ public class DeviceInformationService extends BluetoothGattService {
 
     private final OnDeviceInformationChangedObservable mOnDeviceInformationChangedObservable = new OnDeviceInformationChangedObservable();
 
-    public DeviceInformationService(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+    public DeviceInformationService(@NonNull BluetoothLeDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         super(device, nativeService);
         mSystemIdCharacteristic = mNativeService.getCharacteristic(UUID_SYSTEM_ID);
         mModelNumberCharacteristic = mNativeService.getCharacteristic(UUID_MODEL_NUMBER);

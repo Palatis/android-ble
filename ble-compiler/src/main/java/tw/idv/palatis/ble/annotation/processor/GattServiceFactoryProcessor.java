@@ -93,7 +93,7 @@ public class GattServiceFactoryProcessor extends AbstractProcessor {
                 .addAnnotation(Nullable.class)
                 .returns(ClassName.bestGuess("tw.idv.palatis.ble.services.BluetoothGattService"))
                 .addParameter(
-                        ParameterSpec.builder(ClassName.bestGuess("tw.idv.palatis.ble.BluetoothDevice"), "device", Modifier.FINAL)
+                        ParameterSpec.builder(ClassName.bestGuess("tw.idv.palatis.ble.BluetoothLeDevice"), "device", Modifier.FINAL)
                                 .addAnnotation(NonNull.class)
                                 .build()
                 )

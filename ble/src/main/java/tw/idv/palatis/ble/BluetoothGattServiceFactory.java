@@ -23,7 +23,7 @@ import tw.idv.palatis.ble.services.BluetoothGattService;
  */
 public interface BluetoothGattServiceFactory {
     @Nullable
-    BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService);
+    BluetoothGattService newInstance(@NonNull BluetoothLeDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService);
 
     /**
      * the default factory, creates only {@link tw.idv.palatis.ble.services.BluetoothGattService}
@@ -38,7 +38,7 @@ public interface BluetoothGattServiceFactory {
         }
 
         @Override
-        public BluetoothGattService newInstance(@NonNull final BluetoothDevice device, @NonNull final android.bluetooth.BluetoothGattService nativeService) {
+        public BluetoothGattService newInstance(@NonNull final BluetoothLeDevice device, @NonNull final android.bluetooth.BluetoothGattService nativeService) {
             for (final BluetoothGattServiceFactory factory : mFactories) {
                 final BluetoothGattService service = factory.newInstance(device, nativeService);
                 if (service != null)
@@ -57,15 +57,15 @@ public interface BluetoothGattServiceFactory {
      *   basic usage:
      *   <ol>
      *     <li>create an instance of {@link ReflectedGattServiceFactory}, and initialize it</li>
-     *     <li>construct the {@link BluetoothDevice} from native {@link android.bluetooth.BluetoothDevice}</li>
-     *     <li>set the factory with {@link BluetoothDevice#setServiceFactory(BluetoothGattServiceFactory)}</li>
-     *     <li>now you can {@link BluetoothDevice#connect(Context)}</li>
+     *     <li>construct the {@link BluetoothLeDevice} from native {@link android.bluetooth.BluetoothDevice}</li>
+     *     <li>set the factory with {@link BluetoothLeDevice#setServiceFactory(BluetoothGattServiceFactory)}</li>
+     *     <li>now you can {@link BluetoothLeDevice#connect(Context)}</li>
      *   </ol>
      * </p>
      * <p>
      *   note:
      *   <ol>
-     *     <li>all concrete subclasses of {@link BluetoothGattService} should have a public constructor with signature {@code <init>(tw.idv.palatis.ble.BluetoothDevice, android.bluetooth.BluetootGattService)}</li>
+     *     <li>all concrete subclasses of {@link BluetoothGattService} should have a public constructor with signature {@code <init>(tw.idv.palatis.ble.BluetoothLeDevice, android.bluetooth.BluetootGattService)}</li>
      *     <li>all concrete subclasses of {@link BluetoothGattService} should have a {@code UUID_SERVICE}</li>
      *     <li>tell proguard to {@code keep} the class, the constructor, and static field {@code UUID_SERVICE}.</li>
      *     <li>does not work with Instant Run...</li>
@@ -95,7 +95,7 @@ public interface BluetoothGattServiceFactory {
                             if (klass != null && !Modifier.isAbstract(klass.getModifiers()) && !klass.equals(BluetoothGattService.class) && BluetoothGattService.class.isAssignableFrom(klass)) {
                                 final Field uuidField = klass.getDeclaredField("UUID_SERVICE");
                                 final UUID uuid = (UUID) uuidField.get(null);
-                                @SuppressWarnings("unchecked") final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothDevice.class, android.bluetooth.BluetoothGattService.class);
+                                @SuppressWarnings("unchecked") final Constructor<? extends BluetoothGattService> constructor = (Constructor<? extends BluetoothGattService>) klass.getDeclaredConstructor(BluetoothLeDevice.class, android.bluetooth.BluetoothGattService.class);
 
                                 Log.d(TAG, "    " + klass.getName());
                                 mServiceConstructors.put(uuid, constructor);
@@ -115,7 +115,7 @@ public interface BluetoothGattServiceFactory {
         }
 
         @Override
-        public BluetoothGattService newInstance(@NonNull BluetoothDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
+        public BluetoothGattService newInstance(@NonNull BluetoothLeDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
             final Constructor<? extends BluetoothGattService> ctor = mServiceConstructors.get(nativeService.getUuid());
             if (ctor != null) {
                 try {
