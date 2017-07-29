@@ -206,7 +206,7 @@ public class BluetoothLeDevice {
                     mGattExecutor = Executors.newSingleThreadExecutor();
                     mGattExecutor.execute(() -> {
                         try {
-                            Thread.sleep(250);
+                            Thread.sleep(500);
                             if (mGatt != null && sBtMgr.getConnectionState(getNativeDevice(), BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED)
                                 mGatt.discoverServices();
                         } catch (InterruptedException ex) {
