@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.CallSuper;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
@@ -67,6 +68,7 @@ public class BluetoothLeDevice {
         );
     }
 
+    private Handler mHandler = new Handler(Looper.getMainLooper());
     private final long mId;
     private final String mDeviceAddress;
     private BluetoothDevice mNativeDevice;
@@ -372,7 +374,11 @@ public class BluetoothLeDevice {
      *
      * @param context the application's {@link Context}
      */
-    public synchronized void connect(@NonNull Context context) {
+    public void connect(@NonNull Context context) {
+        mHandler.post(() -> connectInternal(context));
+    }
+
+    public synchronized void connectInternal(@NonNull Context context) {
         if (mGatt != null) {
             if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
                 close();
@@ -389,7 +395,11 @@ public class BluetoothLeDevice {
         mGatt = mNativeDevice.connectGatt(context, false, mGattCallback);
     }
 
-    public synchronized void disconnect() {
+    public void disconnect() {
+        mHandler.post(this::disconnectInternal);
+    }
+
+    public synchronized void disconnectInternal() {
         if (mGatt == null)
             return;
         Log.d(TAG, "disconnect(): disconnect issued.");
@@ -397,7 +407,11 @@ public class BluetoothLeDevice {
         mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
     }
 
-    public synchronized void close() {
+    public void close() {
+        mHandler.post(this::closeInternal);
+    }
+
+    public synchronized void closeInternal() {
         if (mGatt == null)
             return;
         Log.d(TAG, "close(): gatt connection closed.");
