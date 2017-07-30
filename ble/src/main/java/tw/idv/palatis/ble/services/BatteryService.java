@@ -35,13 +35,12 @@ public class BatteryService extends BluetoothGattService {
 
     public BatteryService(@NonNull BluetoothLeDevice device, @NonNull android.bluetooth.BluetoothGattService nativeService) {
         super(device, nativeService);
-        mBatteryLevelCharacteristic = nativeService.getCharacteristic(UUID_BATTERY_LEVEL);
+        ensureCharacteristics(true);
     }
 
     @Override
     public void onCharacteristicRead(@NonNull BluetoothGattCharacteristic characteristic) {
         onCharacteristicChanged(characteristic);
-        super.onCharacteristicRead(characteristic);
     }
 
     @Override
@@ -50,21 +49,32 @@ public class BatteryService extends BluetoothGattService {
     }
 
     public boolean getBatteryLevel() {
-        if (mBatteryLevelCharacteristic != null) {
+        if (ensureCharacteristics(true)) {
             mDevice.readCharacteristic(this, mBatteryLevelCharacteristic);
             return true;
         }
         return true;
     }
 
+    private boolean ensureCharacteristics(boolean enableNotification) {
+        if (mBatteryLevelCharacteristic == null) {
+            mBatteryLevelCharacteristic = mNativeService.getCharacteristic(UUID_BATTERY_LEVEL);
+            if (enableNotification)
+                mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
+        }
+        return mBatteryLevelCharacteristic != null;
+    }
+
     public void addOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
         mOnBatteryLevelChangedObservable.registerObserver(listener);
-        mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
+        if (ensureCharacteristics(false))
+            mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
     }
 
     public void removeOnBatteryLevelChangedListener(OnBatteryLevelChangedListener listener) {
         mOnBatteryLevelChangedObservable.unregisterObserver(listener);
-        mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
+        if (ensureCharacteristics(false))
+            mDevice.setCharacteristicNotification(this, mBatteryLevelCharacteristic, mOnBatteryLevelChangedObservable.numObservers() != 0);
     }
 
     private class OnBatteryLevelChangedObservable extends Observable<OnBatteryLevelChangedListener> {
