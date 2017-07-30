@@ -127,9 +127,8 @@ public class BluetoothLeDevice {
      */
     @Nullable
     public String getName() {
-        return getNativeDevice() == null ?
-                null :
-                getNativeDevice().getName();
+        final BluetoothDevice device = getNativeDevice();
+        return device == null ? null : device.getName();
     }
 
     /**
