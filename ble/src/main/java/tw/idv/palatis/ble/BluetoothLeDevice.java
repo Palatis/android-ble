@@ -202,6 +202,9 @@ public class BluetoothLeDevice {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
+                    mHandler.removeCallbacks(mDisconnectRunnable);
+                    mHandler.removeCallbacks(mCloseRunnable);
+                    mHandler.removeCallbacks(mConnectRunnable);
                     mGattExecutor = Executors.newSingleThreadExecutor();
                     mGattExecutor.execute(() -> {
                         try {
@@ -241,14 +244,20 @@ public class BluetoothLeDevice {
                 return;
             }
 
-            final List<android.bluetooth.BluetoothGattService> services = gatt.getServices();
-            for (final android.bluetooth.BluetoothGattService nativeService : services) {
-                BluetoothGattService service = mServiceFactory.newInstance(BluetoothLeDevice.this, nativeService);
-                if (service == null)
-                    service = new BluetoothGattService(BluetoothLeDevice.this, nativeService);
-                mGattServices.add(service);
-                mOnServiceDiscoveredObservable.notifyServiceDiscovered(service);
+            synchronized (this) {
+                final List<android.bluetooth.BluetoothGattService> services = gatt.getServices();
+                for (final android.bluetooth.BluetoothGattService nativeService : services) {
+                    BluetoothGattService service = mServiceFactory.newInstance(BluetoothLeDevice.this, nativeService);
+                    if (service == null)
+                        service = new BluetoothGattService(BluetoothLeDevice.this, nativeService);
+                    mGattServices.add(service);
+                }
             }
+
+            mHandler.postDelayed(() -> {
+                for (final BluetoothGattService service : mGattServices)
+                    mOnServiceDiscoveredObservable.notifyServiceDiscovered(service);
+            }, 250);
         }
 
         @Override
@@ -374,50 +383,74 @@ public class BluetoothLeDevice {
      * @param context the application's {@link Context}
      */
     public void connect(@NonNull Context context) {
-        mHandler.post(() -> connectInternal(context));
+        mHandler.removeCallbacks(mConnectRunnable);
+        mHandler.post(mConnectRunnable.setContext(context));
     }
 
-    public synchronized void connectInternal(@NonNull Context context) {
-        if (mGatt != null) {
-            if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
-                close();
-            } else {
+    private final ConnectRunnable mConnectRunnable = new ConnectRunnable();
+
+    private final class ConnectRunnable implements Runnable {
+        private Context mContext;
+
+        public synchronized ConnectRunnable setContext(Context context) {
+            mContext = context.getApplicationContext();
+            return this;
+        }
+
+        @Override
+        public synchronized void run() {
+            if (mContext == null)
+                return;
+
+            if (mGatt != null) {
+                if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
+                    close();
+                    mHandler.post(this);
+                    return;
+                } else {
+                    mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
+                    return;
+                }
+            }
+            if (mNativeDevice == null) {
                 mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
                 return;
             }
+            Log.d(TAG, "connect(): " + getAddress() + " issued.");
+            mGatt = mNativeDevice.connectGatt(mContext, false, mGattCallback);
         }
-        if (mNativeDevice == null) {
-            mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
-            return;
-        }
-        Log.d(TAG, "connect(): issued.");
-        mGatt = mNativeDevice.connectGatt(context, false, mGattCallback);
     }
 
     public void disconnect() {
-        mHandler.post(this::disconnectInternal);
+        mHandler.removeCallbacks(mDisconnectRunnable);
+        mHandler.post(mDisconnectRunnable);
     }
 
-    public synchronized void disconnectInternal() {
-        if (mGatt == null)
-            return;
-        Log.d(TAG, "disconnect(): disconnect issued.");
-        mGatt.disconnect();
-        mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
-    }
+    private final Runnable mDisconnectRunnable = () -> {
+        synchronized (this) {
+            if (mGatt == null)
+                return;
+            Log.d(TAG, "disconnect(): " + getAddress() + " issued.");
+            mGatt.disconnect();
+            mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
+        }
+    };
 
     public void close() {
-        mHandler.post(this::closeInternal);
+        mHandler.removeCallbacks(mCloseRunnable);
+        mHandler.postDelayed(mCloseRunnable, 3000);
     }
 
-    public synchronized void closeInternal() {
-        if (mGatt == null)
-            return;
-        Log.d(TAG, "close(): gatt connection closed.");
-        mGatt.close();
-        mGatt = null;
-        mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
-    }
+    private final Runnable mCloseRunnable = () -> {
+        synchronized (this) {
+            if (mGatt == null)
+                return;
+            Log.d(TAG, "close(): gatt connection closed.");
+            mGatt.close();
+            mGatt = null;
+            mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
+        }
+    };
 
     /**
      * get a service with specific service {@link UUID} and instance ID equals to 0.
