@@ -74,6 +74,7 @@ public class BluetoothLeDevice {
     private BluetoothDevice mNativeDevice;
     private BluetoothGatt mGatt = null;
     private int mRssi = -127;
+    private final Object mGattLock = new Object();
 
     private ExecutorService mGattExecutor = Executors.newSingleThreadExecutor();
 
@@ -278,8 +279,8 @@ public class BluetoothLeDevice {
                     ", data = " + Arrays.toString(characteristic.getValue())
             );
 
-            synchronized (BluetoothLeDevice.this) {
-                BluetoothLeDevice.this.notify();
+            synchronized (mGattLock) {
+                mGattLock.notify();
             }
         }
 
@@ -301,8 +302,8 @@ public class BluetoothLeDevice {
                     ", data = " + Arrays.toString(characteristic.getValue())
             );
 
-            synchronized (BluetoothLeDevice.this) {
-                BluetoothLeDevice.this.notify();
+            synchronized (mGattLock) {
+                mGattLock.notify();
             }
         }
 
@@ -346,8 +347,8 @@ public class BluetoothLeDevice {
                     ", data = " + Arrays.toString(descriptor.getValue())
             );
 
-            synchronized (BluetoothLeDevice.this) {
-                BluetoothLeDevice.this.notify();
+            synchronized (mGattLock) {
+                mGattLock.notify();
             }
         }
 
@@ -371,8 +372,8 @@ public class BluetoothLeDevice {
                     ", data = " + Arrays.toString(descriptor.getValue())
             );
 
-            synchronized (BluetoothLeDevice.this) {
-                BluetoothLeDevice.this.notify();
+            synchronized (mGattLock) {
+                mGattLock.notify();
             }
         }
     };
@@ -521,11 +522,11 @@ public class BluetoothLeDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothLeDevice.this) {
+                    synchronized (mGattLock) {
                         mGatt.readCharacteristic(characteristic);
 
                         long start_ms = System.currentTimeMillis();
-                        BluetoothLeDevice.this.wait(3000);
+                        mGattLock.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -551,11 +552,11 @@ public class BluetoothLeDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothLeDevice.this) {
+                    synchronized (mGattLock) {
                         characteristic.setValue(data);
                         mGatt.writeCharacteristic(characteristic);
                         long start_ms = System.currentTimeMillis();
-                        BluetoothLeDevice.this.wait(3000);
+                        mGattLock.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -580,11 +581,11 @@ public class BluetoothLeDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothLeDevice.this) {
+                    synchronized (mGattLock) {
                         mGatt.readDescriptor(descriptor);
 
                         long start_ms = System.currentTimeMillis();
-                        BluetoothLeDevice.this.wait(3000);
+                        mGattLock.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
@@ -610,12 +611,12 @@ public class BluetoothLeDevice {
         try {
             mGattExecutor.execute(() -> {
                 try {
-                    synchronized (BluetoothLeDevice.this) {
+                    synchronized (mGattLock) {
                         descriptor.setValue(data);
                         mGatt.writeDescriptor(descriptor);
 
                         long start_ms = System.currentTimeMillis();
-                        BluetoothLeDevice.this.wait(3000);
+                        mGattLock.wait(3000);
                         if (System.currentTimeMillis() - start_ms >= 3000) {
                             mOnErrorObservable.dispatchTimedOut(service);
                             return;
