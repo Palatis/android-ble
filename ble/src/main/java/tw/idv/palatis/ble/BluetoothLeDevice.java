@@ -203,6 +203,10 @@ public class BluetoothLeDevice {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
+                    if (mGatt != null && mGatt != gatt) {
+                        gatt.close();
+                        return;
+                    }
                     mHandler.removeCallbacks(mDisconnectRunnable);
                     mHandler.removeCallbacks(mCloseRunnable);
                     mHandler.removeCallbacks(mConnectRunnable);
