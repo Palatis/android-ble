@@ -410,7 +410,7 @@ public class BluetoothLeDevice {
             if (mGatt != null) {
                 if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
                     close();
-                    mHandler.post(this);
+                    mHandler.postDelayed(this, 1500);
                     return;
                 } else {
                     mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
@@ -443,7 +443,7 @@ public class BluetoothLeDevice {
 
     public void close() {
         mHandler.removeCallbacks(mCloseRunnable);
-        mHandler.postDelayed(mCloseRunnable, 3000);
+        mHandler.postDelayed(mCloseRunnable, 1000);
     }
 
     private final Runnable mCloseRunnable = () -> {
