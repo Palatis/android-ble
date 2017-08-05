@@ -107,8 +107,10 @@ public class BluetoothLeDevice {
     }
 
     protected BluetoothDevice getNativeDevice() {
-        if (mGatt != null)
-            return mGatt.getDevice();
+        synchronized (this) {
+            if (mGatt != null)
+                return mGatt.getDevice();
+        }
         return mNativeDevice;
     }
 
@@ -176,9 +178,11 @@ public class BluetoothLeDevice {
     @SuppressWarnings("WrongConstant")
     @ConnectionState
     public int getConnectionState() {
-        if (mGatt == null)
-            return BluetoothProfile.STATE_DISCONNECTED;
-        return sBtMgr.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
+        synchronized (this) {
+            if (mGatt == null)
+                return BluetoothProfile.STATE_DISCONNECTED;
+            return sBtMgr.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
+        }
     }
 
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -188,14 +192,16 @@ public class BluetoothLeDevice {
                 Log.e(TAG, "onConnectionStateChange(): Failed! device = " + getAddress() + ", status = " + status + ", newState = " + newState);
                 mOnErrorObservable.dispatchGattError(status);
 
-                gatt.close();
-                if (mGatt == gatt) {
-                    if (mGattExecutor != null) {
-                        mGattExecutor.shutdownNow();
-                        mGattExecutor = null;
+                synchronized (this) {
+                    gatt.close();
+                    if (mGatt == gatt) {
+                        if (mGattExecutor != null) {
+                            mGattExecutor.shutdownNow();
+                            mGattExecutor = null;
+                        }
+                        mGattServices.clear();
+                        mGatt = null;
                     }
-                    mGattServices.clear();
-                    mGatt = null;
                 }
             }
 
@@ -203,9 +209,11 @@ public class BluetoothLeDevice {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
-                    if (mGatt != null && mGatt != gatt) {
-                        gatt.close();
-                        return;
+                    synchronized (this) {
+                        if (mGatt != null && mGatt != gatt) {
+                            gatt.close();
+                            return;
+                        }
                     }
                     mHandler.removeCallbacks(mDisconnectRunnable);
                     mHandler.removeCallbacks(mCloseRunnable);
@@ -223,8 +231,10 @@ public class BluetoothLeDevice {
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
                     Log.d(TAG, "onConnectionStateChanged(): gatt conn closed.");
-                    close();
-                    mGatt = null;
+                    synchronized (this) {
+                        close();
+                        mGatt = null;
+                    }
                 case BluetoothProfile.STATE_DISCONNECTING:
                     if (mGattExecutor != null) {
                         mGattExecutor.shutdownNow();
@@ -407,22 +417,24 @@ public class BluetoothLeDevice {
             if (mContext == null)
                 return;
 
-            if (mGatt != null) {
-                if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
-                    close();
-                    mHandler.postDelayed(this, 1500);
-                    return;
-                } else {
+            synchronized (this) {
+                if (mGatt != null) {
+                    if (getConnectionState() == BluetoothProfile.STATE_DISCONNECTED) {
+                        close();
+                        mHandler.postDelayed(this, 1500);
+                        return;
+                    } else {
+                        mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
+                        return;
+                    }
+                }
+                if (mNativeDevice == null) {
                     mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
                     return;
                 }
+                Log.d(TAG, "connect(): " + getAddress() + " issued.");
+                mGatt = mNativeDevice.connectGatt(mContext, false, mGattCallback);
             }
-            if (mNativeDevice == null) {
-                mOnConnectionStateChangedObservable.notifyConnectionStateChanged(getConnectionState());
-                return;
-            }
-            Log.d(TAG, "connect(): " + getAddress() + " issued.");
-            mGatt = mNativeDevice.connectGatt(mContext, false, mGattCallback);
         }
     }
 
